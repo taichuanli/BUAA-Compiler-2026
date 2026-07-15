@@ -1,0 +1,25 @@
+BUAA Compiler 2026 重构代办
+============================
+
+维护规则
+--------
+1. 每次迭代如果为了保持中间版本可编译而暂时保留旧行为，必须记录在本文件中。
+2. 每条代办写明触发它的后续功能；完成后改为 [DONE]，不要直接删除，保留取舍历史。
+3. 只记录已经明确需要处理的事项，不记录没有课程要求支撑的设想。
+
+M1 已确定的取舍
+---------------
+[DONE][M1] 将课程错误码 a-n 从裸字符串改为 ErrorCode 枚举。
+[DONE][M1] 保留 Reporter 单例，只在 Compiler 启动时 reset；当前一次 JVM 只编译一个文件。
+[DONE][M1] 词法层加入 while、switch、case、default、static 和冒号 Token。
+[DECISION][M1] 不加入 EOF Token；当前只处理课程要求的 i/j/k 缺失 Token 恢复。
+[DECISION][M1] 不处理没有课程错误码的词法、语法诊断。
+
+后续必须处理
+------------
+[PENDING][while] 完成 while 的 Parser、Visitor、IR 和 MIPS 支持后，删除旧 for 文法及 FORTK、parseForStmt、translateForStmt 等相关实现。
+[PENDING][runtime] 新标准库函数调用完成后，删除 GETINTTK、GETCHARTK 以及 LVal = getint()/getchar() 的特殊语句实现。
+[PENDING][switch] 使用已加入的 SWITCHTK、CASETK、DEFAULTTK、COLON，实现 Parser、错误 e/m/n、fall-through IR 和 break 目标处理。
+[PENDING][static] 使用已加入的 STATICTK，实现局部 static 的符号属性、静态存储期和全局数据区降低。
+[PENDING][type-system] 严格类型迭代时补全错误 e；M1 只迁移现有判断，不改变现有类型兼容逻辑。
+[PENDING][backend] 后端边界迭代时再处理 MIPSManager 重置、char 字节访存和立即数/偏移范围，不在 M1 修改。

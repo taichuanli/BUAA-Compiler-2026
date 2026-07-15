@@ -1,6 +1,6 @@
 package frontEnd.lexer;
 
-import frontEnd.MyError;
+import frontEnd.ErrorCode;
 import frontEnd.Reporter;
 import frontEnd.Token;
 
@@ -25,6 +25,11 @@ public class Lexer {
             put("continue", "CONTINUETK");
             put("if", "IFTK");
             put("else", "ELSETK");
+            put("while", "WHILETK");
+            put("switch", "SWITCHTK");
+            put("case", "CASETK");
+            put("default", "DEFAULTTK");
+            put("static", "STATICTK");
             put("for", "FORTK");
             put("getint", "GETINTTK");
             put("getchar", "GETCHARTK");
@@ -237,6 +242,11 @@ public class Lexer {
                 curType = LexType.COMMA;
                 curPos++;
             }
+            case ':' -> {
+                curToken = ":";
+                curType = LexType.COLON;
+                curPos++;
+            }
             case '(' -> {
                 curToken = "(";
                 curType = LexType.LPARENT;
@@ -276,7 +286,7 @@ public class Lexer {
                 } else {
                     curToken = "|";
                     curType = LexType.OR;
-                    Reporter.REPORTER.add(new MyError(lineNum, "a"));
+                    Reporter.REPORTER.report(lineNum, ErrorCode.ILLEGAL_LOGICAL_OPERATOR);
                 }
             }
             case '&' -> {
@@ -289,7 +299,7 @@ public class Lexer {
                 else {
                     curToken = "&";
                     curType = LexType.AND;
-                    Reporter.REPORTER.add(new MyError(lineNum, "a"));
+                    Reporter.REPORTER.report(lineNum, ErrorCode.ILLEGAL_LOGICAL_OPERATOR);
                 }
             }
             case '/' -> parseNote();

@@ -21,6 +21,7 @@ public class Compiler {
     private static final String MIPSPath = "mips.txt";
 
     public static void main(String[] args) {
+        Reporter.REPORTER.reset();
         try {
             String content = new String(Files.readAllBytes(Paths.get(InputPath)));
             Lexer lexer = new Lexer(content);

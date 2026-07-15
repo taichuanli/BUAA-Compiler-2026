@@ -7,10 +7,10 @@ import java.util.TreeSet;
 public class Reporter {
     // 报错用，写入到 error.txt
     public static final Reporter REPORTER = new Reporter();
-    // 先根据行号比，然后如果相同根据 message 字典序排序
+    // 先根据行号比，然后如果相同根据错误码字典序排序
     private final TreeSet<MyError> errors = new TreeSet<>((o1, o2) -> {
         if (o1.lineNum == o2.lineNum) {
-            return o1.message.compareTo(o2.message);
+            return o1.code.value().compareTo(o2.code.value());
         } else {
             return Integer.compare(o1.lineNum, o2.lineNum);
         }
@@ -19,8 +19,12 @@ public class Reporter {
     private Reporter() {
     }
 
-    public void add(MyError e) {
-        errors.add(e);
+    public void reset() {
+        errors.clear();
+    }
+
+    public void report(int lineNum, ErrorCode code) {
+        errors.add(new MyError(lineNum, code));
     }
 
     public void report() {

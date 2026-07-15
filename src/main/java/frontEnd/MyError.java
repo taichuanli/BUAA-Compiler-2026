@@ -3,15 +3,15 @@ package frontEnd;
 public class MyError {
     // package-private 写法
     final int lineNum;
-    final String message;
+    final ErrorCode code;
 
-    public MyError(int lineNum, String message) {
+    public MyError(int lineNum, ErrorCode code) {
         this.lineNum = lineNum;
-        this.message = message;
+        this.code = code;
     }
 
     @Override
     public String toString() {
-        return lineNum + " " + message;
+        return lineNum + " " + code.value();
     }
 }

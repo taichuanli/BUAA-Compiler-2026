@@ -18,19 +18,19 @@ public class Parser {
 
     private void checkSemicn() {
         if (!curToken().isType(LexType.SEMICN)) {
-            Reporter.REPORTER.add(new MyError(tokenWithOffset(-1).lineNum, "i"));
+            Reporter.REPORTER.report(tokenWithOffset(-1).lineNum, ErrorCode.MISSING_SEMICOLON);
         }
     }
 
     private void checkRparent() {
         if (!curToken().isType(LexType.RPARENT)) {
-            Reporter.REPORTER.add(new MyError(tokenWithOffset(-1).lineNum, "j"));
+            Reporter.REPORTER.report(tokenWithOffset(-1).lineNum, ErrorCode.MISSING_RIGHT_PARENTHESIS);
         }
     }
 
     private void checkRbrack() {
         if (!curToken().isType(LexType.RBRACK)) {
-            Reporter.REPORTER.add(new MyError(tokenWithOffset(-1).lineNum, "k"));
+            Reporter.REPORTER.report(tokenWithOffset(-1).lineNum, ErrorCode.MISSING_RIGHT_BRACKET);
         }
     }
 

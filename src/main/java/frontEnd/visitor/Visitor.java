@@ -40,7 +40,7 @@ public class Visitor {
 
     private boolean checkErrorB(Token token) {
         if (currTable.hasSymbol(token.token)) {
-            Reporter.REPORTER.add(new MyError(token.lineNum, "b"));
+            Reporter.REPORTER.report(token.lineNum, ErrorCode.NAME_REDEFINED);
             return false;
         }
         return true;
@@ -56,7 +56,7 @@ public class Visitor {
             table = table.parentTable;
         }
 
-        Reporter.REPORTER.add(new MyError(token.lineNum, "c"));
+        Reporter.REPORTER.report(token.lineNum, ErrorCode.NAME_UNDEFINED);
     }
 
 
@@ -341,7 +341,7 @@ public class Visitor {
             Token RBrace;
             int i = node.children.size() - 1;
             RBrace = ((LeafASTNode) node.children.get(i)).token;
-            Reporter.REPORTER.add(new MyError(RBrace.lineNum, "g"));
+            Reporter.REPORTER.report(RBrace.lineNum, ErrorCode.MISSING_RETURN);
         }
     }
 
@@ -412,13 +412,13 @@ public class Visitor {
                 visitStmt(children.get(i), checkErrorF, true);
             } else if (token.isType(LexType.BREAKTK) || token.isType(LexType.CONTINUETK)) {
                 if (!inLoop) {
-                    Reporter.REPORTER.add(new MyError(token.lineNum, "m"));
+                    Reporter.REPORTER.report(token.lineNum, ErrorCode.INVALID_CONTROL_FLOW);
                 }
             } else if (token.isType(LexType.RETURNTK)) {
                 if (1 < children.size() && children.get(1).isNode("Exp")) {
                     visitExp(children.get(1));
                     if (checkErrorF) {
-                        Reporter.REPORTER.add(new MyError(token.lineNum, "f"));
+                        Reporter.REPORTER.report(token.lineNum, ErrorCode.VOID_FUNCTION_RETURNS_VALUE);
                     }
                 }
                 return true;
@@ -442,7 +442,7 @@ public class Visitor {
                 }
 
                 if (cnt1 != cnt2) {
-                    Reporter.REPORTER.add(new MyError(token.lineNum, "l"));
+                    Reporter.REPORTER.report(token.lineNum, ErrorCode.PRINTF_ARGUMENT_COUNT_MISMATCH);
                 }
             }
         } else if (children.get(0).isNode("LVal")) {
@@ -450,7 +450,7 @@ public class Visitor {
             ASTNode ident = children.get(0).children.get(0);
 
             if (isConst(symbolType)) {
-                Reporter.REPORTER.add(new MyError(((LeafASTNode) ident).token.lineNum, "h"));
+                Reporter.REPORTER.report(((LeafASTNode) ident).token.lineNum, ErrorCode.CONST_ASSIGNMENT);
             }
 
             if (children.get(2).isNode("Exp")) {
@@ -475,7 +475,7 @@ public class Visitor {
         ASTNode ident = node.children.get(0).children.get(0);
 
         if (isConst(symbolType)) {
-            Reporter.REPORTER.add(new MyError(((LeafASTNode) ident).token.lineNum, "h"));
+            Reporter.REPORTER.report(((LeafASTNode) ident).token.lineNum, ErrorCode.CONST_ASSIGNMENT);
         }
 
         visitExp(node.children.get(2));
@@ -567,7 +567,7 @@ public class Visitor {
             }
 
             if (paras.size() != getSymbol(token).params.size()) {
-                Reporter.REPORTER.add(new MyError(token.lineNum, "d"));
+                Reporter.REPORTER.report(token.lineNum, ErrorCode.FUNCTION_ARGUMENT_COUNT_MISMATCH);
             } else {
                 boolean flag = false;
                 for (int i = 0; i < paras.size(); i++) {
@@ -576,7 +576,7 @@ public class Visitor {
                     }
                 }
                 if (flag) {
-                    Reporter.REPORTER.add(new MyError(token.lineNum, "e"));
+                    Reporter.REPORTER.report(token.lineNum, ErrorCode.TYPE_MISMATCH);
                 }
             }
 

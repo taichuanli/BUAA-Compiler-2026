@@ -9,6 +9,7 @@ public enum LexType {
     MOD,            // "%"
     SEMICN,         // ";"
     COMMA,          // ","
+    COLON,          // ":"
     LPARENT,        // "("
     RPARENT,        // ")"
     LBRACK,         // "["
@@ -37,6 +38,11 @@ public enum LexType {
     CONTINUETK,
     IFTK,
     ELSETK,
+    WHILETK,
+    SWITCHTK,
+    CASETK,
+    DEFAULTTK,
+    STATICTK,
     FORTK,
     GETINTTK,
     GETCHARTK,
