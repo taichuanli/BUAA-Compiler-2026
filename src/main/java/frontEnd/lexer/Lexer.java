@@ -30,7 +30,6 @@ public class Lexer {
             put("case", "CASETK");
             put("default", "DEFAULTTK");
             put("static", "STATICTK");
-            put("for", "FORTK");
             put("getint", "GETINTTK");
             put("getchar", "GETCHARTK");
             put("printf", "PRINTFTK");

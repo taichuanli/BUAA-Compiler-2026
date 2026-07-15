@@ -366,7 +366,7 @@ public class Visitor {
         /*
            <Stmt> ::= <Block>
                     | 'if' '(' <Cond> ')' <Stmt> [ 'else' <Stmt> ]
-                    | 'for' '(' [ <ForStmt> ] ';' [ <Cond> ] ';' [ <ForStmt> ] ')' <Stmt>
+                    | 'while' '(' <Cond> ')' <Stmt>
                     | 'break' ';'
                     | 'continue' ';'
                     | 'return' [ <Exp> ] ';'
@@ -392,24 +392,9 @@ public class Visitor {
                     }
                     i++;
                 }
-            } else if (token.isType(LexType.FORTK)) {
-                int i = 2;
-                if (i < children.size() && children.get(i).isNode("ForStmt")) {
-                    visitForStmt(children.get(i));
-                    i++;
-                }
-                i++;
-                if (i < children.size() && children.get(i).isNode("Cond")) {
-                    visitCond(children.get(i));
-                    i++;
-                }
-                i++;
-                if (i < children.size() && children.get(i).isNode("ForStmt")) {
-                    visitForStmt(children.get(i));
-                    i++;
-                }
-                i++;
-                visitStmt(children.get(i), checkErrorF, true);
+            } else if (token.isType(LexType.WHILETK)) {
+                visitCond(children.get(2));
+                visitStmt(children.get(children.size() - 1), checkErrorF, true);
             } else if (token.isType(LexType.BREAKTK) || token.isType(LexType.CONTINUETK)) {
                 if (!inLoop) {
                     Reporter.REPORTER.report(token.lineNum, ErrorCode.INVALID_CONTROL_FLOW);
@@ -467,18 +452,6 @@ public class Visitor {
             case ConstInt, ConstChar -> true;
             default -> false;
         };
-    }
-
-    private void visitForStmt(ASTNode node) {
-        // <ForStmt> ::=  <LVal> '=' <Exp>
-        SymbolType symbolType = visitLVal(node.children.get(0));
-        ASTNode ident = node.children.get(0).children.get(0);
-
-        if (isConst(symbolType)) {
-            Reporter.REPORTER.report(((LeafASTNode) ident).token.lineNum, ErrorCode.CONST_ASSIGNMENT);
-        }
-
-        visitExp(node.children.get(2));
     }
 
     private void visitCond(ASTNode node) {

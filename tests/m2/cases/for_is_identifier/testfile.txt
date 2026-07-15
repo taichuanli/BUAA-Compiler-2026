@@ -1,0 +1,5 @@
+int main() {
+    int for = 7;
+    printf("%d\n", for);
+    return 0;
+}

@@ -43,7 +43,6 @@ public enum LexType {
     CASETK,
     DEFAULTTK,
     STATICTK,
-    FORTK,
     GETINTTK,
     GETCHARTK,
     PRINTFTK,

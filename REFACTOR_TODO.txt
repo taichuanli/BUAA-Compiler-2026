@@ -17,7 +17,8 @@ M1 已确定的取舍
 
 后续必须处理
 ------------
-[PENDING][while] 完成 while 的 Parser、Visitor、IR 和 MIPS 支持后，删除旧 for 文法及 FORTK、parseForStmt、translateForStmt 等相关实现。
+[DONE][M2][while] 已完成 while 的 Parser、Visitor、IR 和 MIPS 链路；旧 for 文法及 FORTK、parseForStmt、translateForStmt 已删除，for 恢复为普通标识符。
+[DECISION][M2][while] IR 使用通用循环 break/continue 标签栈；MIPS 复用现有 BranchInst 降低，不增加 while 专用后端结构。
 [PENDING][runtime] 新标准库函数调用完成后，删除 GETINTTK、GETCHARTK 以及 LVal = getint()/getchar() 的特殊语句实现。
 [PENDING][switch] 使用已加入的 SWITCHTK、CASETK、DEFAULTTK、COLON，实现 Parser、错误 e/m/n、fall-through IR 和 break 目标处理。
 [PENDING][static] 使用已加入的 STATICTK，实现局部 static 的符号属性、静态存储期和全局数据区降低。

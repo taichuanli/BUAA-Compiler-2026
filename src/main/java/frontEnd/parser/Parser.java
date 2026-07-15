@@ -212,7 +212,7 @@ public class Parser {
         /*
            <Stmt> ::= <Block>
                     | 'if' '(' <Cond> ')' <Stmt> [ 'else' <Stmt> ]
-                    | 'for' '(' [ <ForStmt> ] ';' [ <Cond> ] ';' [ <ForStmt> ] ')' <Stmt>
+                    | 'while' '(' <Cond> ')' <Stmt>
                     | 'break' ';'
                     | 'continue' ';'
                     | 'return' [ <Exp> ] ';'
@@ -236,22 +236,10 @@ public class Parser {
                 node.addChild(parseTokenType(LexType.ELSETK));
                 node.addChild(parseStmt());
             }
-        } else if (curToken().isType(LexType.FORTK)) {
-            node.addChild(parseTokenType(LexType.FORTK));
+        } else if (curToken().isType(LexType.WHILETK)) {
+            node.addChild(parseTokenType(LexType.WHILETK));
             node.addChild(parseTokenType(LexType.LPARENT));
-            if (!curToken().isType(LexType.SEMICN)) {
-                node.addChild(parseForStmt());
-            }
-            checkSemicn();
-            node.addChild(parseTokenType(LexType.SEMICN));
-            if (!curToken().isType(LexType.SEMICN)) {
-                node.addChild(parseCond());
-            }
-            checkSemicn();
-            node.addChild(parseTokenType(LexType.SEMICN));
-            if (!curToken().isType(LexType.RPARENT)) {
-                node.addChild(parseForStmt());
-            }
+            node.addChild(parseCond());
             checkRparent();
             node.addChild(parseTokenType(LexType.RPARENT));
             node.addChild(parseStmt());
@@ -447,19 +435,6 @@ public class Parser {
             newNode.addChild(parseAddExp());
             node = newNode;
         }
-
-        if (OUTPUT) {
-            sb.append(node.print()).append("\n");
-        }
-        return node;
-    }
-
-    private ASTNode parseForStmt() {
-        // <ForStmt> ::=  <LVal> '=' <Exp>
-        ASTNode node = new ASTNode("ForStmt");
-        node.addChild(parseLVal());
-        node.addChild(parseTokenType(LexType.ASSIGN));
-        node.addChild(parseExp());
 
         if (OUTPUT) {
             sb.append(node.print()).append("\n");
