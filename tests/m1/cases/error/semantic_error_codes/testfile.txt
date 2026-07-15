@@ -1,0 +1,10 @@
+const int fixed = 1;
+int main() {
+    int value = 0;
+    int value = 1;
+    missing = 2;
+    fixed = 3;
+    printf("%d %d", value);
+    break;
+    return 0;
+}

@@ -1,0 +1,5 @@
+IDENFR while_count
+IDENFR switcher
+IDENFR case_value
+IDENFR default_value
+IDENFR static_value

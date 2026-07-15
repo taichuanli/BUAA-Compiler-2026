@@ -1,0 +1,8 @@
+int main() {
+    int while_count = 1;
+    int switcher = 2;
+    int case_value = 3;
+    int default_value = 4;
+    int static_value = 5;
+    return while_count + switcher + case_value + default_value + static_value;
+}

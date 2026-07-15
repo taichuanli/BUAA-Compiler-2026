@@ -1,0 +1,6 @@
+STATICTK static
+WHILETK while
+SWITCHTK switch
+CASETK case
+COLON :
+DEFAULTTK default

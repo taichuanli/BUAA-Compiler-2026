@@ -1,0 +1,14 @@
+int main() {
+    static int count = 0;
+    while (count < 2) {
+        switch (count) {
+            case 0:
+                count = count + 1;
+                break;
+            default:
+                count = count + 1;
+                break;
+        }
+    }
+    return 0;
+}
