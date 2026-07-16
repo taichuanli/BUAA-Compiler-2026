@@ -1,0 +1,9 @@
+char next() {
+    static char value = '~';
+    value = value + (char)1;
+    return value;
+}
+int main() {
+    printf("%d %d\n", (int)next(), (int)next());
+    return 0;
+}

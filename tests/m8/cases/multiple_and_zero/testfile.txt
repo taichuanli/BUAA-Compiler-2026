@@ -1,0 +1,10 @@
+int next() {
+    static int zero, step = 2;
+    zero = zero + 1;
+    step = step + 2;
+    return zero * 10 + step;
+}
+int main() {
+    printf("%d %d\n", next(), next());
+    return 0;
+}

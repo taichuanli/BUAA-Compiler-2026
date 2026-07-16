@@ -15,6 +15,10 @@ public class LLVMModule {
         globalValues.add(value);
     }
 
+    public void addGlobalDecl(Value value) {
+        globalValues.add(value);
+    }
+
     public void addFunction(LLVMFunction globalValue) {
         LLVMFunctions.add(globalValue);
     }

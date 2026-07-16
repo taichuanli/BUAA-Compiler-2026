@@ -15,11 +15,15 @@ public class LLVMSymbolTable {
 
 
     public void addVariable(LLVMVariable var) {
+        addVariable(var.name, var);
+    }
+
+    public void addVariable(String sourceName, LLVMVariable var) {
         if (var instanceof GlobalVariable globalVariable) {
-            symbols.put(globalVariable.name, globalVariable);
+            symbols.put(sourceName, globalVariable);
             initValues.put(globalVariable, globalVariable.initVal);
         } else {
-            symbols.put(var.name, var.usableValue);
+            symbols.put(sourceName, var.usableValue);
             initValues.put(var.usableValue, var.initVal);
         }
     }

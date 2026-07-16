@@ -1,0 +1,10 @@
+const int BASE = 3;
+static int global_value = BASE + 1;
+int value() {
+    static int local_value = BASE * 2;
+    return global_value + local_value;
+}
+int main() {
+    printf("%d\n", value());
+    return 0;
+}

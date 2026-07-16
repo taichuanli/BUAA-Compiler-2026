@@ -9,6 +9,7 @@ public class Symbol {
     // public _SymbolType1 symbolType1;
     // public _SymbolType2 symbolType2;
     public SymbolType symbolType;
+    public boolean isStatic;
     public ArrayList<Symbol> params = new ArrayList<>();
 
     public Symbol(int id, int tableId, Token token, _SymbolType1 symbolType1, _SymbolType2 symbolType2) {
@@ -20,6 +21,10 @@ public class Symbol {
 
     public void setParams(ArrayList<Symbol> params) {
         this.params = new ArrayList<>(params);
+    }
+
+    public void setStatic(boolean isStatic) {
+        this.isStatic = isStatic;
     }
 
     public enum _SymbolType1 {

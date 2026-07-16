@@ -115,6 +115,10 @@ public class IRGenerator {
         newSymbolTables.get(scopeId).addVariable(symbol);
     }
 
+    private void addLLVMVariable(String sourceName, LLVMVariable symbol) {
+        newSymbolTables.get(scopeId).addVariable(sourceName, symbol);
+    }
+
     private void addLLVMFParam(String name, UsableValue value) {
         newSymbolTables.get(scopeId).symbols.put(name, value);
     }
@@ -323,19 +327,33 @@ public class IRGenerator {
 
     private LinkedList<LLVMInstruction> translateVarDecl(ASTNode node) {
         LinkedList<LLVMInstruction> list = new LinkedList<>();
+        boolean isStatic = node.children.get(0) instanceof LeafASTNode leaf
+                && leaf.token.isType(LexType.STATICTK);
         for (ASTNode child : node.children) {
             if (child.isNode("VarDef")) {
                 LeafASTNode ident = (LeafASTNode) child.children.get(0);
                 Symbol symbol = getOldSymbol(ident);
-                LLVMVariable var;
                 int arrayLength;
                 if (symbol.symbolType.toString().endsWith("Array")) {
                     arrayLength = calculateConstExp(child.children.get(2));
                 } else {
                     arrayLength = 0;
                 }
-                var = new LLVMVariable(symbol, arrayLength);
                 ASTNode lastChild = child.children.get(child.children.size() - 1);
+                if (isStatic) {
+                    GlobalVariable var = new GlobalVariable(symbol, arrayLength);
+                    ConstInitVal initVal = lastChild.isNode("InitVal")
+                            ? translateConstInitVal(lastChild, arrayLength) : new ConstInitVal();
+                    initVal.padToLength(arrayLength);
+                    var.setInitVal(initVal);
+                    String sourceName = var.name;
+                    var.name = String.format("static_%d_%d_%s", symbol.tableId, symbol.id, sourceName);
+                    module.addGlobalDecl(var);
+                    addLLVMVariable(sourceName, var);
+                    continue;
+                }
+
+                LLVMVariable var = new LLVMVariable(symbol, arrayLength);
                 InitVal initVal = null;
                 if (lastChild.isNode("InitVal")) {
                     initVal = translateInitVal(lastChild, arrayLength);

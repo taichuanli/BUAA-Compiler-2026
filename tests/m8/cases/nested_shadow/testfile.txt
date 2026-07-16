@@ -1,0 +1,15 @@
+int update() {
+    static int value = 0;
+    {
+        static int value = 10;
+        value = value + 2;
+        printf("%d ", value);
+    }
+    value = value + 1;
+    return value;
+}
+int main() {
+    printf("%d\n", update());
+    printf("%d\n", update());
+    return 0;
+}

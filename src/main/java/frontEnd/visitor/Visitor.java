@@ -243,10 +243,13 @@ public class Visitor {
     }
 
     private void visitVarDecl(ASTNode node) {
-        // <VarDecl> ::= <BType> <VarDef> { ',' <VarDef> } ';'
+        // <VarDecl> ::= [ 'static' ] <BType> <VarDef> { ',' <VarDef> } ';'
         // <BType> ::= 'int' | 'char'
         _SymbolType1 symbolType1 = null;
-        LeafASTNode leafNode = (LeafASTNode) node.children.get(0).children.get(0);
+        boolean isStatic = node.children.get(0) instanceof LeafASTNode leaf
+                && leaf.token.isType(LexType.STATICTK);
+        ASTNode bType = node.children.stream().filter(child -> child.isNode("BType")).findFirst().orElseThrow();
+        LeafASTNode leafNode = (LeafASTNode) bType.children.get(0);
         if (leafNode.token.isType(LexType.INTTK)) {
             // int
             symbolType1 = _SymbolType1.INT;
@@ -257,13 +260,13 @@ public class Visitor {
 
         for (ASTNode child : node.children) {
             if (child.name.equals("VarDef")) {
-                visitVarDef(child, symbolType1);
+                visitVarDef(child, symbolType1, isStatic);
             }
         }
 
     }
 
-    private void visitVarDef(ASTNode node, _SymbolType1 symbolType1) {
+    private void visitVarDef(ASTNode node, _SymbolType1 symbolType1, boolean isStatic) {
         // <VarDef> ::= <Ident> [ '[' <ConstExp> ']' ] [ '=' <InitVal> ]
         Token token = ((LeafASTNode) node.children.get(0)).token;
         _SymbolType2 symbolType2 = _SymbolType2.VAR;
@@ -276,7 +279,9 @@ public class Visitor {
             }
         }
         if (checkErrorB(token)) {
-            currTable.addSymbol(new Symbol(symbolId++, currTable.id, token, symbolType1, symbolType2));
+            Symbol symbol = new Symbol(symbolId++, currTable.id, token, symbolType1, symbolType2);
+            symbol.setStatic(isStatic);
+            currTable.addSymbol(symbol);
         }
 
         if (node.children.get(node.children.size() - 1).isNode("InitVal")) {

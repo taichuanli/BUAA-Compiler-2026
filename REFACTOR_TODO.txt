@@ -25,7 +25,8 @@ M1 已确定的取舍
 [DECISION][M7][runtime-name] 以 testcase-2026/lib/libsysy.h 的 put_string 为准；教程表格和部分文字中的 put_str 视为笔误，不增加第二套运行库别名。
 [DONE][M5][switch] 已完成 switch/case/default 的 Parser、错误 e/m/n、fall-through IR 与 MIPS 链路；break 使用通用目标栈，continue 仍只绑定 while。
 [DECISION][M5][number] CharConst 已从旧 `<Character>` 结点统一到 2026 `<Number>`；字符转数值逻辑集中复用于语义检查和 IR case 常量。
-[PENDING][static] 使用已加入的 STATICTK，实现局部 static 的符号属性、静态存储期和全局数据区降低。
+[DONE][M8][static] 局部 static 已具备符号属性、静态存储期和全局数据区降低；以 `static_<tableId>_<symbolId>_<name>` 生成唯一内部名称，源程序仍按原名称和作用域查找。
+[DECISION][M8][global-static] 2026 文法说明以局部 static 为目标，但现有 testcase-2026 中存在全局 static；为兼容测试，全局 static 按普通全局变量处理，不增加另一套存储规则。
 [DONE][M4][type-system] 新增独立的 SemanticType，补全 int/char/数组/void 的运算、赋值、初始化、返回、参数、数组下标、标识符误用和 printf 类型错误 e；SymbolType 与 symbol.txt 格式保持不变。
 [DONE][M4][explicit-cast] Parser、常量折叠和 IR 已支持 `(int)` / `(char)` 显式转换，缺少右括号继续使用 j；IR 以 zext/trunc 明确表示转换。
 [DECISION][M4][printf-s] 语义分析已识别 `%s` 并要求 char[]，避免误报参数个数 l；实际 `%s` 输出及字符串运行库仍由 runtime-string 迭代完成。

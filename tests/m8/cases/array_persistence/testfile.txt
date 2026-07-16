@@ -1,0 +1,13 @@
+int update(int n) {
+    static int values[2] = {1, 2};
+    static char text[3] = "ab";
+    values[0] = values[0] + n;
+    text[1] = text[1] + (char)n;
+    printf("%d %c\n", values[0], text[1]);
+    return 0;
+}
+int main() {
+    update(1);
+    update(2);
+    return 0;
+}

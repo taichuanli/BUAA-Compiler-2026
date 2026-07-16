@@ -101,6 +101,9 @@ public class Parser {
         if (curToken().isType(LexType.CONSTTK))
             return true;
 
+        if (curToken().isType(LexType.STATICTK))
+            return true;
+
         if (!curToken().isType(LexType.INTTK) && !curToken().isType(LexType.CHARTK))
             return false;
 
@@ -791,8 +794,11 @@ public class Parser {
     }
 
     private ASTNode parseVarDecl() {
-        // <VarDecl> ::= <BType> <VarDef> { ',' <VarDef> } ';'
+        // <VarDecl> ::= [ 'static' ] <BType> <VarDef> { ',' <VarDef> } ';'
         ASTNode node = new ASTNode("VarDecl");
+        if (curToken().isType(LexType.STATICTK)) {
+            node.addChild(parseTokenType(LexType.STATICTK));
+        }
         node.addChild(parseBType());
         node.addChild(parseVarDef());
         while (curToken().isType(LexType.COMMA)) {
