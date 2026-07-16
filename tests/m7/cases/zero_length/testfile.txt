@@ -1,0 +1,6 @@
+int main() {
+    char buffer[4] = "XYZ";
+    get_string(buffer, 0);
+    put_string(buffer);
+    return 0;
+}

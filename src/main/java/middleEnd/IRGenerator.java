@@ -60,6 +60,7 @@ public class IRGenerator {
              writer.write("""
                      declare i32 @get_int()             ; 读取一个整数
                      declare i8 @get_char()              ; 读取一个字符
+                     declare void @get_string(i8*, i32) ; 读取字符串
                      declare void @put_int(i32)          ; 输出一个整数
                      declare void @put_char(i8)          ; 输出一个字符
                      declare void @put_string(i8*)       ; 输出字符串
@@ -900,6 +901,19 @@ public class IRGenerator {
                     }
                     CallInst callInst = new CallInst("put_char", params);
                     instructions.add(callInst);
+                } else if (strVal.charAt(i) == 's') {
+                    if (!tmp.isEmpty()) {
+                        tmp.append("\\00");
+                        tmpLen += 1;
+                        instructions.addAll(PrintConstStr(tmp.toString(), tmpLen));
+                        tmp = new StringBuilder();
+                        tmpLen = 0;
+                    }
+
+                    LLVMExp exp = exps.get(currExpIndex++);
+                    LinkedList<UsableValue> params = new LinkedList<>();
+                    params.add(exp.value);
+                    instructions.add(new CallInst("put_string", params));
                 } else {
                     tmp.append('%');
                     tmp.append(strVal.charAt(i));

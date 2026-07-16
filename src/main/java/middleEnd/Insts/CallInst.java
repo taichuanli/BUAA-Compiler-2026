@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 public class CallInst extends LLVMInstruction implements UsableValue {
+    private static int runtimeLabelCounter;
     private final LLVMType.TypeID retType;
     private final String funcName;
     private final LinkedList<UsableValue> params;
@@ -136,12 +137,35 @@ public class CallInst extends LLVMInstruction implements UsableValue {
         return this.funcName.equals("get_char") || this.funcName.equals("get_int");
     }
 
+    private void loadParam(LinkedList<MIPSInst> instructions, UsableValue param, Register target) {
+        Register source;
+        if (param.toValueIR().startsWith("%")) {
+            source = MIPSManager.getInstance().getReg(param);
+            instructions.add(MIPSManager.getInstance().loadValueToReg(param, source));
+        } else if (param.toValueIR().startsWith("@")) {
+            source = Register.K0;
+            instructions.add(new LAInst(source, "global_" + param.toValueIR().substring(1)));
+        } else {
+            source = Register.K0;
+            instructions.add(new LIInst(source, param.toValueIR()));
+        }
+        instructions.add(new ADDIUInst(source, target, 0));
+    }
+
     @Override
     public LinkedList<MIPSInst> toMIPS() {
         LinkedList<MIPSInst> mipsInsts = new LinkedList<>();
         mipsInsts.add(new MIPSComment(this.toString()));
 
-        if (isOutput()) {
+        if (funcName.equals("get_string")) {
+            loadParam(mipsInsts, params.get(0), Register.A0);
+            loadParam(mipsInsts, params.get(1), Register.A1);
+            String doneLabel = "runtime_get_string_done_" + runtimeLabelCounter++;
+            mipsInsts.add(new BLEZInst(Register.A1, doneLabel));
+            mipsInsts.add(new LIInst(Register.V0, String.valueOf(8)));
+            mipsInsts.add(new SYSCALLInst());
+            mipsInsts.add(new NamedLabelInst(doneLabel));
+        } else if (isOutput()) {
             UsableValue param = params.get(0);
             Register fromReg;
             if (param.toValueIR().startsWith("%")) {

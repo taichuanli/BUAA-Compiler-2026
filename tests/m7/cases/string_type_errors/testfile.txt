@@ -1,0 +1,10 @@
+int main() {
+    char chars[4] = "abc";
+    int ints[2] = {1, 2};
+    char length = '4';
+    get_string(ints, 2);
+    get_string(chars, length);
+    put_string(ints);
+    get_string(chars);
+    return 0;
+}

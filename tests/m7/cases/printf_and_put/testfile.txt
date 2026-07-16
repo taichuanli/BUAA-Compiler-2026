@@ -1,0 +1,7 @@
+char global_text[7] = "global";
+int main() {
+    char local_text[6] = "local";
+    printf("%s %s ", global_text, local_text);
+    put_string(global_text);
+    return 0;
+}

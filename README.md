@@ -13,7 +13,8 @@
 - M4 已加入独立表达式类型系统、完整课程类型错误 `e` 与 `(int)` / `(char)` 显式转换；
 - M5 已实现 `switch/case/default`、fall-through 以及错误 `e/m/n`；
 - M6 已实现字符 `.byte` 数据、`lbu/sb` 访存、步长 1 的数组寻址及模 256 字符算术；
-- 字符串 I/O 和 `static` 仍待后续迭代。
+- M7 已实现 `get_string`、`put_string` 与 `printf %s`；
+- 局部 `static` 和后端边界加固仍待后续迭代。
 
 ## 编译流水线
 
@@ -62,6 +63,6 @@ src/main/java/
 
 ## 后续升级方向
 
-1. 修正 MIPS 字符数组的字节存储与寻址，再接入 `get_string`、`put_string` 和 `%s`；
-2. 实现局部 `static`；
+1. 实现局部 `static`；
+2. 加固大偏移、立即数和跨次编译状态；
 3. 接入 `coverage-2026`、`testcase-2026` 和 `pal` 进行回归与对拍。

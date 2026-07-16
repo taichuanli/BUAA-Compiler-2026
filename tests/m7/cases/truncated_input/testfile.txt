@@ -1,0 +1,6 @@
+int main() {
+    char buffer[4];
+    get_string(buffer, 4);
+    printf("[%s]", buffer);
+    return 0;
+}

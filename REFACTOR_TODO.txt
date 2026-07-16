@@ -21,7 +21,8 @@ M1 已确定的取舍
 [DECISION][M2][while] IR 使用通用循环 break/continue 标签栈；MIPS 复用现有 BranchInst 降低，不增加 while 专用后端结构。
 [DONE][M3][runtime-scalar] get_int、get_char、put_int、put_char 已统一为普通函数调用；GETINTTK、GETCHARTK 和旧特殊赋值语句已删除。
 [DECISION][M3][runtime-scalar] 内建签名不写入 symbol.txt；参数个数沿用 d，严格标量类型 e 留给统一类型系统，不为内建函数增加临时规则。
-[PENDING][M7][runtime-string] M6 已稳定 char 字节访存和地址传递；下一步实现 get_string、用户直接调用 put_string 以及 printf 的 %s，当前仅由 printf 内部使用 put_string 输出常量字符串。
+[DONE][M7][runtime-string] 已实现 get_string(char[], int)、put_string(char[]) 和 printf %s；MIPS 分别降低为 syscall 8/4，get_string 对 max_len <= 0 显式跳过以保护缓冲区。
+[DECISION][M7][runtime-name] 以 testcase-2026/lib/libsysy.h 的 put_string 为准；教程表格和部分文字中的 put_str 视为笔误，不增加第二套运行库别名。
 [DONE][M5][switch] 已完成 switch/case/default 的 Parser、错误 e/m/n、fall-through IR 与 MIPS 链路；break 使用通用目标栈，continue 仍只绑定 while。
 [DECISION][M5][number] CharConst 已从旧 `<Character>` 结点统一到 2026 `<Number>`；字符转数值逻辑集中复用于语义检查和 IR case 常量。
 [PENDING][static] 使用已加入的 STATICTK，实现局部 static 的符号属性、静态存储期和全局数据区降低。
