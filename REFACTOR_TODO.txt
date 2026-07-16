@@ -21,11 +21,14 @@ M1 已确定的取舍
 [DECISION][M2][while] IR 使用通用循环 break/continue 标签栈；MIPS 复用现有 BranchInst 降低，不增加 while 专用后端结构。
 [DONE][M3][runtime-scalar] get_int、get_char、put_int、put_char 已统一为普通函数调用；GETINTTK、GETCHARTK 和旧特殊赋值语句已删除。
 [DECISION][M3][runtime-scalar] 内建签名不写入 symbol.txt；参数个数沿用 d，严格标量类型 e 留给统一类型系统，不为内建函数增加临时规则。
-[PENDING][runtime-string] char 字节访存和地址传递稳定后，实现 get_string、用户直接调用 put_string 以及 printf 的 %s；当前仅由 printf 内部使用 put_string 输出常量字符串。
+[PENDING][M7][runtime-string] M6 已稳定 char 字节访存和地址传递；下一步实现 get_string、用户直接调用 put_string 以及 printf 的 %s，当前仅由 printf 内部使用 put_string 输出常量字符串。
 [DONE][M5][switch] 已完成 switch/case/default 的 Parser、错误 e/m/n、fall-through IR 与 MIPS 链路；break 使用通用目标栈，continue 仍只绑定 while。
 [DECISION][M5][number] CharConst 已从旧 `<Character>` 结点统一到 2026 `<Number>`；字符转数值逻辑集中复用于语义检查和 IR case 常量。
 [PENDING][static] 使用已加入的 STATICTK，实现局部 static 的符号属性、静态存储期和全局数据区降低。
 [DONE][M4][type-system] 新增独立的 SemanticType，补全 int/char/数组/void 的运算、赋值、初始化、返回、参数、数组下标、标识符误用和 printf 类型错误 e；SymbolType 与 symbol.txt 格式保持不变。
 [DONE][M4][explicit-cast] Parser、常量折叠和 IR 已支持 `(int)` / `(char)` 显式转换，缺少右括号继续使用 j；IR 以 zext/trunc 明确表示转换。
 [DECISION][M4][printf-s] 语义分析已识别 `%s` 并要求 char[]，避免误报参数个数 l；实际 `%s` 输出及字符串运行库仍由 runtime-string 迭代完成。
-[PENDING][backend] 后端边界迭代时再处理 MIPSManager 重置、char 字节访存和立即数/偏移范围，不在 M1 修改。
+[DONE][M6][backend-char] 全局 char 使用 .byte，局部 char 按字节存取且分配块保持 4 字节对齐，数组 GEP 步长为 1，读取使用 lbu、写入使用 sb。
+[DONE][M6][char-arithmetic] char 值在 IR 中保留 i8，字符算术每步 trunc 到 0..255；常量折叠同步携带 int/char 类型，保证强转前后的模 256 语义一致。
+[DECISION][M6][spills] char 数据使用字节访存，但虚拟寄存器溢出槽、指针和函数参数仍统一占 4 字节，避免扩大调用约定改动。
+[PENDING][backend] 后端边界迭代时处理 MIPSManager 跨次编译重置和立即数/偏移范围；char 字节访存已在 M6 完成。

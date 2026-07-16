@@ -1,0 +1,9 @@
+int main() {
+    char bytes[4] = "abc";
+    bytes[0] = 'W';
+    bytes[1] = 'X';
+    bytes[2] = 'Y';
+    bytes[3] = 'Z';
+    put_char(bytes[0]); put_char(bytes[1]); put_char(bytes[2]); put_char(bytes[3]);
+    return 0;
+}

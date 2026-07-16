@@ -108,7 +108,9 @@ public class GetelementptrInst extends LLVMInstruction implements UsableValue {
             mipsInsts.add(new LIInst(offsetReg, offset.toValueIR()));
         }
 
-        mipsInsts.add(new SLLInst(offsetReg, offsetReg, 2));
+        if (baseType != LLVMType.TypeID.CharPtrTyID) {
+            mipsInsts.add(new SLLInst(offsetReg, offsetReg, 2));
+        }
 
         Register toReg;
 //        if (!MIPSManager.getInstance().hasReg(this)) {

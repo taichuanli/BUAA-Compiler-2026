@@ -1,0 +1,14 @@
+int sum(char values[], int count) {
+    int index = 0;
+    int result = 0;
+    while (index < count) {
+        result = result + (int)values[index];
+        index = index + 1;
+    }
+    return result;
+}
+int main() {
+    char values[4] = {(char)1, (char)2, (char)128, (char)255};
+    put_int(sum(values, 4));
+    return 0;
+}

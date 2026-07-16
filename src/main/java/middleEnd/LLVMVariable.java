@@ -66,7 +66,7 @@ public class LLVMVariable extends Value {
                     if (llvmExp instanceof LLVMConst llvmConst) {
                         llvmExp = new LLVMExp(llvmConst);
                     }
-                    if (baseType == LLVMType.TypeID.CharTyID) {
+                    if (baseType == LLVMType.TypeID.CharTyID && !llvmExp.value.toLLVMType().equals("i8")) {
                         llvmExp.addUsableInstruction(new TruncInst(llvmExp.value, baseType));
                     }
                     LinkedList<LLVMInstruction> initValInsts = llvmExp.getInstructions();
@@ -113,7 +113,7 @@ public class LLVMVariable extends Value {
                             instructions.add(new StoreInst(constExp, getelementptrInst));
                             continue;
                         }
-                        if (baseType == LLVMType.TypeID.CharTyID) {
+                        if (baseType == LLVMType.TypeID.CharTyID && !llvmExp.value.toLLVMType().equals("i8")) {
                             llvmExp.addUsableInstruction(new TruncInst(llvmExp.value, baseType));
                         }
                         LinkedList<LLVMInstruction> initValInsts = llvmExp.getInstructions();

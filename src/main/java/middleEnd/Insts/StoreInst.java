@@ -2,6 +2,7 @@ package middleEnd.Insts;
 
 import backEnd.Insts.LAInst;
 import backEnd.Insts.LIInst;
+import backEnd.Insts.SBInst;
 import backEnd.Insts.SWInst;
 import backEnd.MIPSComment;
 import backEnd.MIPSInst;
@@ -82,7 +83,11 @@ public class StoreInst extends LLVMInstruction {
         }
 
 
-        mipsInsts.add(new SWInst(toReg, fromReg, 0));
+        if (to.toLLVMType().equals("i8*")) {
+            mipsInsts.add(new SBInst(toReg, fromReg, 0));
+        } else {
+            mipsInsts.add(new SWInst(toReg, fromReg, 0));
+        }
         MIPSManager.getInstance().releaseRegs();
 
 //        MIPSManager.getInstance().resetReservedRegs();

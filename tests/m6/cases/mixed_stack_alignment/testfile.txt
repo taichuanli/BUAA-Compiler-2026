@@ -1,0 +1,10 @@
+int main() {
+    char prefix[3] = "xy";
+    int first = 123456789;
+    char marker = 'Q';
+    int second = 987654321;
+    prefix[2] = 'Z';
+    put_char(prefix[0]); put_char(prefix[1]); put_char(prefix[2]); put_char(' ');
+    put_int(first); put_char(' '); put_char(marker); put_char(' '); put_int(second);
+    return 0;
+}

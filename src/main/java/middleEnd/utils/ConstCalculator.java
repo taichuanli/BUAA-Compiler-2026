@@ -6,153 +6,143 @@ import frontEnd.Token;
 import frontEnd.lexer.LexType;
 import middleEnd.ConstInitVal;
 import middleEnd.LLVMSymbolTable;
-import middleEnd.LLVMVariable;
 import middleEnd.UsableValue;
 
 import java.util.HashMap;
 
 public class ConstCalculator {
+    private record TypedConst(int value, boolean charType) {
+        private TypedConst normalize() {
+            return charType ? new TypedConst(value & 0xff, true) : this;
+        }
+    }
+
     private final HashMap<Integer, LLVMSymbolTable> symbolTables;
-    private int scopeId; // 查找用
+    private int scopeId;
 
     public ConstCalculator(HashMap<Integer, LLVMSymbolTable> symbolTables) {
         this.symbolTables = symbolTables;
     }
 
-    private int getConst(String name, int i) {
+    private UsableValue getConstSymbol(String name) {
         int currScopeId = scopeId;
         while (currScopeId > 0) {
-            if (symbolTables.get(currScopeId).symbols.containsKey(name)) {
-//                ConstInitVal constInitVal = (ConstInitVal) ((LLVMVariable) symbolTables.get(currScopeId).symbols.get(name)).initVal;
-                UsableValue usableValue = symbolTables.get(currScopeId).symbols.get(name);
-                ConstInitVal constInitVal = symbolTables.get(currScopeId).getConstInitVal(usableValue);
-                return constInitVal.getConstValue(i);
+            LLVMSymbolTable table = symbolTables.get(currScopeId);
+            if (table.symbols.containsKey(name)) {
+                return table.symbols.get(name);
             }
-
-            if (symbolTables.get(currScopeId).parentTable == null) {
+            if (table.parentTable == null) {
                 break;
             }
+            currScopeId = table.parentTable.id;
+        }
+        throw new RuntimeException("Const not found: " + name);
+    }
 
-            currScopeId = symbolTables.get(currScopeId).parentTable.id;
+    private TypedConst getConst(String name, int index) {
+        UsableValue value = getConstSymbol(name);
+        int currScopeId = scopeId;
+        while (currScopeId > 0) {
+            LLVMSymbolTable table = symbolTables.get(currScopeId);
+            if (table.symbols.containsKey(name)) {
+                ConstInitVal initVal = table.getConstInitVal(value);
+                return new TypedConst(initVal.getConstValue(index), value.toLLVMType().contains("i8")).normalize();
+            }
+            currScopeId = table.parentTable.id;
         }
         throw new RuntimeException("Const not found: " + name);
     }
 
     public int calculateConstExp(ASTNode node, int scopeId) {
         this.scopeId = scopeId;
-        return calculateConstExp(node);
+        return calculateConstExp(node).value;
     }
 
-    private int calculateConstExp(ASTNode node) {
+    private TypedConst calculateConstExp(ASTNode node) {
         return calculateAddExp(node.children.get(0));
     }
 
-    private int calculateAddExp(ASTNode node) {
+    private TypedConst calculateAddExp(ASTNode node) {
         if (node.children.size() == 1) {
             return calculateMulExp(node.children.get(0));
-        } else {
-            int left = calculateAddExp(node.children.get(0));
-            int right = calculateMulExp(node.children.get(2));
-            if (((LeafASTNode) node.children.get(1)).token.token.equals("+")) {
-                return left + right;
-            } else {
-                return left - right;
-            }
         }
+        TypedConst left = calculateAddExp(node.children.get(0));
+        TypedConst right = calculateMulExp(node.children.get(2));
+        int value = ((LeafASTNode) node.children.get(1)).token.token.equals("+")
+                ? left.value + right.value : left.value - right.value;
+        return new TypedConst(value, left.charType).normalize();
     }
 
-    private int calculateMulExp(ASTNode node) {
+    private TypedConst calculateMulExp(ASTNode node) {
         if (node.children.size() == 1) {
             return calculateUnaryExp(node.children.get(0));
-        } else {
-            int left = calculateMulExp(node.children.get(0));
-            int right = calculateUnaryExp(node.children.get(2));
-            if (((LeafASTNode) node.children.get(1)).token.token.equals("*")) {
-                return left * right;
-            } else if (((LeafASTNode) node.children.get(1)).token.token.equals("/")) {
-                return left / right;
-            } else {
-                return left % right;
-            }
         }
+        TypedConst left = calculateMulExp(node.children.get(0));
+        TypedConst right = calculateUnaryExp(node.children.get(2));
+        String operator = ((LeafASTNode) node.children.get(1)).token.token;
+        int value = switch (operator) {
+            case "*" -> left.value * right.value;
+            case "/" -> left.value / right.value;
+            default -> left.value % right.value;
+        };
+        return new TypedConst(value, left.charType).normalize();
     }
 
-    private int calculateUnaryExp(ASTNode node) {
+    private TypedConst calculateUnaryExp(ASTNode node) {
         if (node.children.size() == 1) {
             return calculatePrimaryExp(node.children.get(0));
-        } else if (node.children.get(0) instanceof LeafASTNode leaf
-                && leaf.token.isType(LexType.LPARENT)) {
-            int value = calculateUnaryExp(node.children.get(node.children.size() - 1));
-            LeafASTNode target = (LeafASTNode) node.children.get(1).children.get(0);
-            return target.token.isType(LexType.CHARTK) ? value & 0xff : value;
-        } else if (node.children.get(0).name.equals("LEAF")) {
-            LeafASTNode leaf = (LeafASTNode) node.children.get(0);
-            String token = leaf.token.token;
-            // 那就不是常量了啊
-            throw new RuntimeException("In ConstCalculator, Found UnaryExp ::= Ident '(' ... ')' : " + token);
-        } else {
-            ASTNode unaryOpNode = node.children.get(0);
-            LeafASTNode leaf = (LeafASTNode) unaryOpNode.children.get(0);
-            String token = leaf.token.token;
-            if (token.equals("+")) {
-                return calculateUnaryExp(node.children.get(1));
-            } else if (token.equals("-")) {
-                return -1 * calculateUnaryExp(node.children.get(1));
-            } else {
-                int ret = calculateUnaryExp(node.children.get(1));
-                if (ret == 0) {
-                    ret = 1;
-                } else {
-                    ret = 0;
-                }
-                return ret;
-            }
         }
+        if (node.children.get(0) instanceof LeafASTNode leaf && leaf.token.isType(LexType.LPARENT)) {
+            TypedConst value = calculateUnaryExp(node.children.get(node.children.size() - 1));
+            LeafASTNode target = (LeafASTNode) node.children.get(1).children.get(0);
+            return new TypedConst(value.value, target.token.isType(LexType.CHARTK)).normalize();
+        }
+        if (node.children.get(0) instanceof LeafASTNode leaf) {
+            throw new RuntimeException("Function call is not a constant expression: " + leaf.token.token);
+        }
+        TypedConst value = calculateUnaryExp(node.children.get(1));
+        String operator = ((LeafASTNode) node.children.get(0).children.get(0)).token.token;
+        return switch (operator) {
+            case "+" -> value;
+            case "-" -> new TypedConst(-value.value, value.charType).normalize();
+            default -> new TypedConst(value.value == 0 ? 1 : 0, false);
+        };
     }
 
-    private int calculatePrimaryExp(ASTNode node) {
+    private TypedConst calculatePrimaryExp(ASTNode node) {
         if (node.children.size() == 3) {
             return calculateConstExp(node.children.get(1));
-        } else if (node.children.get(0).isNode("LVal")) {
-            LeafASTNode leaf = (LeafASTNode) node.children.get(0).children.get(0);
-            String token = leaf.token.token;
-            ASTNode lvalNode = node.children.get(0);
-            if (lvalNode.children.size() == 1) {
-                return getConst(token, 0);
-            } else {
-                return getConst(token, calculateConstExp(lvalNode.children.get(2)));
-            }
-        } else {
-            LeafASTNode leaf = (LeafASTNode) node.children.get(0).children.get(0);
-            Token token = leaf.token;
-            if (token.isType(LexType.INTCON)) {
-                return Integer.parseInt(token.token);
-            } else {
-                return getVal(token);
-            }
         }
+        if (node.children.get(0).isNode("LVal")) {
+            ASTNode lval = node.children.get(0);
+            String name = ((LeafASTNode) lval.children.get(0)).token.token;
+            int index = lval.children.size() == 1 ? 0 : calculateConstExp(lval.children.get(2)).value;
+            return getConst(name, index);
+        }
+        Token token = ((LeafASTNode) node.children.get(0).children.get(0)).token;
+        if (token.isType(LexType.INTCON)) {
+            return new TypedConst(Integer.parseInt(token.token), false);
+        }
+        return new TypedConst(charValue(token), true);
     }
 
-    private static int getVal(Token token) {
-        String str = token.token;
-        int val;
-        if (str.charAt(1) == '\\') {
-            val = switch (str.charAt(2)) {
-                case '0' -> 0;
-                case 'a' -> 7;
-                case 'b' -> 8;
-                case 't' -> 9;
-                case 'n' -> 10;
-                case 'v' -> 11;
-                case 'f' -> 12;
-                case '\"' -> 34;
-                case '\'' -> 39;
-                case '\\' -> 92;
-                default -> throw new RuntimeException("Unknown escape sequence");
-            };
-        } else {
-            val = str.charAt(1);
+    private static int charValue(Token token) {
+        String value = token.token;
+        if (value.charAt(1) != '\\') {
+            return value.charAt(1);
         }
-        return val;
+        return switch (value.charAt(2)) {
+            case '0' -> 0;
+            case 'a' -> 7;
+            case 'b' -> 8;
+            case 't' -> 9;
+            case 'n' -> 10;
+            case 'v' -> 11;
+            case 'f' -> 12;
+            case '"' -> 34;
+            case '\'' -> 39;
+            case '\\' -> 92;
+            default -> value.charAt(2);
+        };
     }
 }

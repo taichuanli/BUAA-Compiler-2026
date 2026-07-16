@@ -1,0 +1,11 @@
+const int folded = (int)((char)250 + (char)10);
+int main() {
+    char left = (char)250;
+    char right = (char)10;
+    int runtime = (int)(left + right);
+    char negative = -(char)66;
+    put_int(folded); put_char(' ');
+    put_int(runtime); put_char(' ');
+    put_int((int)negative);
+    return 0;
+}

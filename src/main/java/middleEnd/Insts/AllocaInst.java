@@ -71,12 +71,10 @@ public class AllocaInst extends LLVMInstruction implements UsableValue {
         LinkedList<MIPSInst> mipsInsts = new LinkedList<>();
         mipsInsts.add(new MIPSComment(this.toString()));
         // 给值申请内存
-        int size;
-        if (arrayLength == 0) {
-            size = 4;
-        } else {
-            size = 4 * arrayLength;
-        }
+        int elementSize = baseType == LLVMType.TypeID.CharTyID ? 1 : 4;
+        int elementCount = arrayLength == 0 ? 1 : arrayLength;
+        int rawSize = elementSize * elementCount;
+        int size = (rawSize + 3) / 4 * 4;
         int offset = MIPSManager.getInstance().allocateMemForAlloca(size);
         // 给指针申请寄存器
         // mipsInsts.addAll(MIPSManager.getInstance().deallocateReg());

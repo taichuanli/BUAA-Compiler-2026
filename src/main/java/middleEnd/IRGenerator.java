@@ -1018,15 +1018,17 @@ public class IRGenerator {
             LLVMExp left = translateAddExp(node.children.get(0));
             LLVMExp right = translateMulExp(node.children.get(2));
             String token = ((LeafASTNode) node.children.get(1)).token.token;
+            boolean charOperation = left.value.toLLVMType().equals("i8")
+                    && right.value.toLLVMType().equals("i8");
             if (left instanceof LLVMConst constLeft && right instanceof LLVMConst constRight) {
                 if (token.equals("+")) {
-                    return constLeft.binaryOperate(LLVMType.InstType.ADD, constRight);
+                    return finishCharArithmetic(constLeft.binaryOperate(LLVMType.InstType.ADD, constRight), charOperation);
                 } else {
-                    return constLeft.binaryOperate(LLVMType.InstType.SUB, constRight);
+                    return finishCharArithmetic(constLeft.binaryOperate(LLVMType.InstType.SUB, constRight), charOperation);
                 }
             }
 
-            if (Trimmer.optimize) {
+            if (Trimmer.optimize && !charOperation) {
                 if (left instanceof LLVMConst constLeft && constLeft.constValue == 0) {
                     return right;
                 }
@@ -1049,9 +1051,9 @@ public class IRGenerator {
                 right.addUsableInstruction(new ZextInst(right.value, LLVMType.TypeID.IntegerTyID));
             }
             if (token.equals("+")){
-                return left.binaryOperate(LLVMType.InstType.ADD, right);
+                return finishCharArithmetic(left.binaryOperate(LLVMType.InstType.ADD, right), charOperation);
             } else {
-                return left.binaryOperate(LLVMType.InstType.SUB, right);
+                return finishCharArithmetic(left.binaryOperate(LLVMType.InstType.SUB, right), charOperation);
             }
         }
     }
@@ -1063,18 +1065,20 @@ public class IRGenerator {
             LLVMExp left = translateMulExp(node.children.get(0));
             LLVMExp right = translateUnaryExp(node.children.get(2));
             String token = ((LeafASTNode) node.children.get(1)).token.token;
+            boolean charOperation = left.value.toLLVMType().equals("i8")
+                    && right.value.toLLVMType().equals("i8");
             if (left instanceof LLVMConst constLeft && right instanceof LLVMConst constRight) {
                 if (token.equals("*")) {
-                    return constLeft.binaryOperate(LLVMType.InstType.MUL, constRight);
+                    return finishCharArithmetic(constLeft.binaryOperate(LLVMType.InstType.MUL, constRight), charOperation);
                 } else if (token.equals("/")) {
-                    return constLeft.binaryOperate(LLVMType.InstType.SDIV, constRight);
+                    return finishCharArithmetic(constLeft.binaryOperate(LLVMType.InstType.SDIV, constRight), charOperation);
                 } else {
-                    return constLeft.binaryOperate(LLVMType.InstType.SREM, constRight);
+                    return finishCharArithmetic(constLeft.binaryOperate(LLVMType.InstType.SREM, constRight), charOperation);
 
                 }
             }
 
-            if (Trimmer.optimize) {
+            if (Trimmer.optimize && !charOperation) {
                 switch (token) {
                     case "*" -> {
                         if (left instanceof LLVMConst constLeft) {
@@ -1136,13 +1140,26 @@ public class IRGenerator {
                 right.addUsableInstruction(new ZextInst(right.value, LLVMType.TypeID.IntegerTyID));
             }
             if (((LeafASTNode) node.children.get(1)).token.token.equals("*")) {
-                return left.binaryOperate(LLVMType.InstType.MUL, right);
+                return finishCharArithmetic(left.binaryOperate(LLVMType.InstType.MUL, right), charOperation);
             } else if (((LeafASTNode) node.children.get(1)).token.token.equals("/")) {
-                return left.binaryOperate(LLVMType.InstType.SDIV, right);
+                return finishCharArithmetic(left.binaryOperate(LLVMType.InstType.SDIV, right), charOperation);
             } else {
-                return left.binaryOperate(LLVMType.InstType.SREM, right);
+                return finishCharArithmetic(left.binaryOperate(LLVMType.InstType.SREM, right), charOperation);
             }
         }
+    }
+
+    private LLVMExp finishCharArithmetic(LLVMExp expression, boolean charOperation) {
+        if (!charOperation) {
+            return expression;
+        }
+        if (expression instanceof LLVMConst constant) {
+            constant.constValue &= 0xff;
+            constant.changeType(LLVMType.TypeID.CharTyID);
+        } else {
+            expression.addUsableInstruction(new TruncInst(expression.value, LLVMType.TypeID.CharTyID));
+        }
+        return expression;
     }
 
     private boolean isPowerOf2(int val) {
@@ -1185,13 +1202,17 @@ public class IRGenerator {
             if (unaryExp instanceof LLVMConst constExp) {
                 return switch (leaf.token.token) {
                     case "+" -> constExp;
-                    case "-" -> constExp.negate();
+                    case "-" -> finishCharArithmetic(constExp.negate(),
+                            constExp.baseType == LLVMType.TypeID.CharTyID);
                     default -> constExp.logicalNot();
                 };
             } else {
                 return switch (leaf.token.token) {
                     case "+" -> unaryExp;
-                    case "-" -> unaryExp.negate();
+                    case "-" -> {
+                        boolean charOperand = unaryExp.value.toLLVMType().equals("i8");
+                        yield finishCharArithmetic(unaryExp.negate(), charOperand);
+                    }
                     default -> unaryExp.logicalNot();
                 };
             }
@@ -1224,9 +1245,6 @@ public class IRGenerator {
                 callInst = new CallInst(toCall.retType, toCall.name, forCall);
             }
             exp.addUsableInstruction(callInst);
-            if (toCall.retType == LLVMType.TypeID.CharTyID) {
-                exp.addUsableInstruction(new ZextInst(callInst, LLVMType.TypeID.IntegerTyID));
-            }
             return exp;
         }
     }
@@ -1264,7 +1282,9 @@ public class IRGenerator {
             return translateLValAsExp(node.children.get(0));
         } else {
             Token token = ((LeafASTNode) node.children.get(0).children.get(0)).token;
-            return new LLVMConst(LLVMType.TypeID.IntegerTyID, literalValue(token));
+            LLVMType.TypeID type = token.isType(LexType.CHRCON)
+                    ? LLVMType.TypeID.CharTyID : LLVMType.TypeID.IntegerTyID;
+            return new LLVMConst(type, literalValue(token));
         }
     }
 
@@ -1286,7 +1306,9 @@ public class IRGenerator {
                 ConstInitVal constInitVal = (ConstInitVal) ((LLVMVariable) value).initVal;
                 if (indexVal != -1) {
                     int val = constInitVal.getConstValue(indexVal);
-                    return new LLVMConst(LLVMType.TypeID.IntegerTyID, val);
+                    LLVMType.TypeID type = value.toLLVMType().contains("i8")
+                            ? LLVMType.TypeID.CharTyID : LLVMType.TypeID.IntegerTyID;
+                    return new LLVMConst(type, val);
                 }
             }
              if (indexExp instanceof LLVMConst llvmConst) {
@@ -1309,9 +1331,6 @@ public class IRGenerator {
             indexExp.addUsableInstruction(getInst);
             LoadInst loadInst = new LoadInst(baseType, indexExp.value);
             indexExp.addUsableInstruction(loadInst);
-            if (baseType == LLVMType.TypeID.CharTyID) {
-                indexExp.addUsableInstruction(new ZextInst(loadInst, LLVMType.TypeID.IntegerTyID));
-            }
             return indexExp;
         } else {
 //            indexVal = 0;
@@ -1344,14 +1363,11 @@ public class IRGenerator {
                 if (var.isConst) {
                     ConstInitVal constInitVal = (ConstInitVal) ((LLVMVariable) value).initVal;
                     int val = constInitVal.getConstValue(0);
-                    return new LLVMConst(LLVMType.TypeID.IntegerTyID, val);
+                    return new LLVMConst(baseType, val);
                 }
             }
             LoadInst loadInst = new LoadInst(baseType, lVal.value);
             lVal.addUsableInstruction(loadInst);
-            if (baseType == LLVMType.TypeID.CharTyID) {
-                lVal.addUsableInstruction(new ZextInst(loadInst, LLVMType.TypeID.IntegerTyID));
-            }
             return lVal;
         }
     }

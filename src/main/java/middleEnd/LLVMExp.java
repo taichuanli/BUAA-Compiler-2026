@@ -1,6 +1,7 @@
 package middleEnd;
 
 import middleEnd.Insts.BinaryInst;
+import middleEnd.Insts.ZextInst;
 
 import java.util.LinkedList;
 
@@ -31,6 +32,7 @@ public class LLVMExp extends Value {
     }
 
     public LLVMExp negate() {
+        widenToInteger();
         BinaryInst newInst = new BinaryInst(LLVMType.InstType.SUB, new LLVMConst(LLVMType.TypeID.IntegerTyID, 0), this.value);
         instructions.add(newInst);
         this.value = newInst;
@@ -38,6 +40,7 @@ public class LLVMExp extends Value {
     }
 
     public LLVMExp logicalNot() {
+        widenToInteger();
         BinaryInst newInst = new BinaryInst(LLVMType.InstType.ICMP_EQ, this.value, new LLVMConst(LLVMType.TypeID.IntegerTyID, 0));
         instructions.add(newInst);
         this.value = newInst;
@@ -55,8 +58,17 @@ public class LLVMExp extends Value {
     }
 
     public void logical() {
+        widenToInteger();
         BinaryInst newInst = new BinaryInst(LLVMType.InstType.ICMP_NE, this.value, new LLVMConst(LLVMType.TypeID.IntegerTyID, 0));
         instructions.add(newInst);
         this.value = newInst;
+    }
+
+    private void widenToInteger() {
+        if (value != null && !value.toLLVMType().equals("i32")) {
+            ZextInst zext = new ZextInst(value, LLVMType.TypeID.IntegerTyID);
+            instructions.add(zext);
+            value = zext;
+        }
     }
 }

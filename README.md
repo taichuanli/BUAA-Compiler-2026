@@ -12,7 +12,8 @@
 - M3 已将 `get_int`、`get_char`、`put_int`、`put_char` 接入普通函数调用链，并删除旧 `getint/getchar` 特殊语句；
 - M4 已加入独立表达式类型系统、完整课程类型错误 `e` 与 `(int)` / `(char)` 显式转换；
 - M5 已实现 `switch/case/default`、fall-through 以及错误 `e/m/n`；
-- 字符串 I/O、`static` 和字符字节级后端仍待后续迭代。
+- M6 已实现字符 `.byte` 数据、`lbu/sb` 访存、步长 1 的数组寻址及模 256 字符算术；
+- 字符串 I/O 和 `static` 仍待后续迭代。
 
 ## 编译流水线
 

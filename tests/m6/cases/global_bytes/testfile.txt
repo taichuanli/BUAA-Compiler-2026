@@ -1,0 +1,11 @@
+char chars[4] = "abc";
+int guard = 123456;
+int main() {
+    chars[1] = 'Z';
+    put_char(chars[0]);
+    put_char(chars[1]);
+    put_char(chars[2]);
+    put_char(' ');
+    put_int(guard);
+    return 0;
+}

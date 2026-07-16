@@ -108,6 +108,7 @@ public class LLVMConst extends LLVMExp implements UsableValue {
         } else {
             constValue = 0;
         }
+        baseType = LLVMType.TypeID.IntegerTyID;
         return this;
     }
 
