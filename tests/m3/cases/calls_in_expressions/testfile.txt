@@ -1,0 +1,8 @@
+int twice(int value) {
+    return value * 2;
+}
+int main() {
+    int result = twice(get_int()) + get_int();
+    put_int(result);
+    return 0;
+}

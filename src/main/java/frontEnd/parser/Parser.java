@@ -217,8 +217,6 @@ public class Parser {
                     | 'continue' ';'
                     | 'return' [ <Exp> ] ';'
                     | 'printf' '(' <StringConst> { ',' Exp } ')' ';'
-                    | <LVal> '=' 'getint' '(' ')' ';'
-                    | <LVal> '=' 'getchar' '(' ')' ';'
                     | <LVal> '=' <Exp> ';'
                     | [Exp] ';'
          */
@@ -305,22 +303,7 @@ public class Parser {
                 if (isLValEQL()) {
                     node.addChild(parseLVal());
                     node.addChild(parseTokenType(LexType.ASSIGN));
-                    // | <LVal> '=' 'getint' '(' ')' ';'
-                    // | <LVal> '=' 'getchar' '(' ')' ';'
-                    // | <LVal> '=' <Exp> ';'
-                    if (curToken().isType(LexType.GETINTTK)) {
-                        node.addChild(parseTokenType(LexType.GETINTTK));
-                        node.addChild(parseTokenType(LexType.LPARENT));
-                        checkRparent();
-                        node.addChild(parseTokenType(LexType.RPARENT));
-                    } else if (curToken().isType(LexType.GETCHARTK)) {
-                        node.addChild(parseTokenType(LexType.GETCHARTK));
-                        node.addChild(parseTokenType(LexType.LPARENT));
-                        checkRparent();
-                        node.addChild(parseTokenType(LexType.RPARENT));
-                    } else {
-                        node.addChild(parseExp());
-                    }
+                    node.addChild(parseExp());
                 } else {
                     // <Exp>
                     node.addChild(parseExp());

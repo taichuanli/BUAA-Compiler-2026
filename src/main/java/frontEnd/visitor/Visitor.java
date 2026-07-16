@@ -35,6 +35,10 @@ public class Visitor {
             table = table.parentTable;
         }
 
+        if (RuntimeLibrary.contains(token.token)) {
+            return RuntimeLibrary.resolve(token);
+        }
+
         return new Symbol(0, 0, token, _SymbolType1.VOID, _SymbolType2.VAR);
     }
 
@@ -47,6 +51,10 @@ public class Visitor {
     }
 
     private void checkErrorC(Token token) {
+        if (RuntimeLibrary.contains(token.token)) {
+            return;
+        }
+
         SymbolTable table = currTable;
         while (table != null) {
             if (table.hasSymbol(token.token)) {
@@ -371,8 +379,6 @@ public class Visitor {
                     | 'continue' ';'
                     | 'return' [ <Exp> ] ';'
                     | 'printf' '(' <StringConst> { ',' Exp } ')' ';'
-                    | <LVal> '=' 'getint' '(' ')' ';'
-                    | <LVal> '=' 'getchar' '(' ')' ';'
                     | <LVal> '=' <Exp> ';'
                     | [Exp] ';'
          */

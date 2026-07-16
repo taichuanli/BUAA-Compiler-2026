@@ -129,11 +129,11 @@ public class CallInst extends LLVMInstruction implements UsableValue {
     }
 
     private boolean isOutput() {
-        return this.funcName.equals("putstr") || this.funcName.equals("putch") || this.funcName.equals("putint");
+        return this.funcName.equals("put_string") || this.funcName.equals("put_char") || this.funcName.equals("put_int");
     }
 
     private boolean isInput() {
-        return this.funcName.equals("getchar") || this.funcName.equals("getint");
+        return this.funcName.equals("get_char") || this.funcName.equals("get_int");
     }
 
     @Override
@@ -162,9 +162,9 @@ public class CallInst extends LLVMInstruction implements UsableValue {
             }
 
             mipsInsts.add(new ADDIUInst(fromReg, Register.A0, 0));
-            if (funcName.equals("putint")) {
+            if (funcName.equals("put_int")) {
                 mipsInsts.add(new LIInst(Register.V0, String.valueOf(1)));
-            } else if (funcName.equals("putstr")) {
+            } else if (funcName.equals("put_string")) {
                 mipsInsts.add(new LIInst(Register.V0, String.valueOf(4)));
             } else {
                 mipsInsts.add(new LIInst(Register.V0, String.valueOf(11)));
@@ -174,7 +174,7 @@ public class CallInst extends LLVMInstruction implements UsableValue {
         } else if (isInput()) {
 //            mipsInsts.addAll(MIPSManager.getInstance().deallocateReg());
             Register reg = MIPSManager.getInstance().getReg(this);
-            if (funcName.equals("getint")) {
+            if (funcName.equals("get_int")) {
                 mipsInsts.add(new LIInst(Register.V0, String.valueOf(5)));
             } else {
                 mipsInsts.add(new LIInst(Register.V0, String.valueOf(12)));

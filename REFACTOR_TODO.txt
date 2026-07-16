@@ -19,7 +19,9 @@ M1 已确定的取舍
 ------------
 [DONE][M2][while] 已完成 while 的 Parser、Visitor、IR 和 MIPS 链路；旧 for 文法及 FORTK、parseForStmt、translateForStmt 已删除，for 恢复为普通标识符。
 [DECISION][M2][while] IR 使用通用循环 break/continue 标签栈；MIPS 复用现有 BranchInst 降低，不增加 while 专用后端结构。
-[PENDING][runtime] 新标准库函数调用完成后，删除 GETINTTK、GETCHARTK 以及 LVal = getint()/getchar() 的特殊语句实现。
+[DONE][M3][runtime-scalar] get_int、get_char、put_int、put_char 已统一为普通函数调用；GETINTTK、GETCHARTK 和旧特殊赋值语句已删除。
+[DECISION][M3][runtime-scalar] 内建签名不写入 symbol.txt；参数个数沿用 d，严格标量类型 e 留给统一类型系统，不为内建函数增加临时规则。
+[PENDING][runtime-string] char 字节访存和地址传递稳定后，实现 get_string、用户直接调用 put_string 以及 printf 的 %s；当前仅由 printf 内部使用 put_string 输出常量字符串。
 [PENDING][switch] 使用已加入的 SWITCHTK、CASETK、DEFAULTTK、COLON，实现 Parser、错误 e/m/n、fall-through IR 和 break 目标处理。
 [PENDING][static] 使用已加入的 STATICTK，实现局部 static 的符号属性、静态存储期和全局数据区降低。
 [PENDING][type-system] 严格类型迭代时补全错误 e；M1 只迁移现有判断，不改变现有类型兼容逻辑。

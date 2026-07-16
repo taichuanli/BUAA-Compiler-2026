@@ -1,0 +1,6 @@
+int getint = 1;
+int main() {
+    int getchar = 2;
+    put_int(getint + getchar);
+    return 0;
+}

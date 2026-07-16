@@ -51,18 +51,18 @@ public class IRGenerator {
         try (FileWriter writer = new FileWriter(forOutput)) {
 
             /*
-            declare i32 @getint()          ; 读取一个整数
-            declare i32 @getchar()         ; 读取一个字符
-            declare void @putint(i32)      ; 输出一个整数
-            declare void @putch(i32)       ; 输出一个字符
-            declare void @putstr(i8*)      ; 输出字符串
+            declare i32 @get_int()             ; 读取一个整数
+            declare i8 @get_char()              ; 读取一个字符
+            declare void @put_int(i32)          ; 输出一个整数
+            declare void @put_char(i8)          ; 输出一个字符
+            declare void @put_string(i8*)       ; 输出字符串
              */
              writer.write("""
-                     declare i32 @getint()          ; 读取一个整数
-                     declare i32 @getchar()         ; 读取一个字符
-                     declare void @putint(i32)      ; 输出一个整数
-                     declare void @putch(i32)       ; 输出一个字符
-                     declare void @putstr(i8*)      ; 输出字符串
+                     declare i32 @get_int()             ; 读取一个整数
+                     declare i8 @get_char()              ; 读取一个字符
+                     declare void @put_int(i32)          ; 输出一个整数
+                     declare void @put_char(i8)          ; 输出一个字符
+                     declare void @put_string(i8*)       ; 输出字符串
                      
                      """);
             writer.write(module.toString());
@@ -380,16 +380,7 @@ public class IRGenerator {
                 case CONTINUETK -> instructions.addAll(translateContinueStmt());
             }
         } else if (node.children.get(0).isNode("LVal")) {
-            if (node.children.size() > 2 && node.children.get(2).isNode("LEAF")) {
-                LexType type = ((LeafASTNode) node.children.get(2)).token.type;
-                if (type == LexType.GETCHARTK) {
-                    instructions.addAll(translateGetCharStmt(node));
-                } else {
-                    instructions.addAll(translateGetIntStmt(node));
-                }
-            } else {
-                instructions.addAll(translateAssignStmt(node));
-            }
+            instructions.addAll(translateAssignStmt(node));
         } else if (node.children.get(0).isNode("Exp")) {
             instructions.addAll(translateExpStmt(node));
         } else {
@@ -800,7 +791,7 @@ public class IRGenerator {
                     } else {
                         params.add(exp.value);
                     }
-                    CallInst callInst = new CallInst("putint", params);
+                    CallInst callInst = new CallInst("put_int", params);
                     instructions.add(callInst);
                 } else if (strVal.charAt(i) == 'c') {
                     if (!tmp.isEmpty()) {
@@ -813,14 +804,14 @@ public class IRGenerator {
 
                     LLVMExp exp = exps.get(currExpIndex++);
                     LinkedList<UsableValue> params = new LinkedList<>();
-                    if (!exp.value.toLLVMType().contains("i32")) {
-                        ZextInst zextInst = new ZextInst(exp.value, LLVMType.TypeID.IntegerTyID);
-                        instructions.add(zextInst);
-                        params.add(zextInst);
+                    if (!exp.value.toLLVMType().equals("i8")) {
+                        TruncInst truncInst = new TruncInst(exp.value, LLVMType.TypeID.CharTyID);
+                        instructions.add(truncInst);
+                        params.add(truncInst);
                     } else {
                         params.add(exp.value);
                     }
-                    CallInst callInst = new CallInst("putch", params);
+                    CallInst callInst = new CallInst("put_char", params);
                     instructions.add(callInst);
                 } else {
                     tmp.append('%');
@@ -862,40 +853,8 @@ public class IRGenerator {
         instructions.add(getInst);
         LinkedList<UsableValue> param = new LinkedList<>();
         param.add(getInst);
-        CallInst callInst = new CallInst("putstr", param);
+        CallInst callInst = new CallInst("put_string", param);
         instructions.add(callInst);
-        return instructions;
-    }
-
-    private LinkedList<LLVMInstruction> translateGetCharStmt(ASTNode node) {
-        LLVMExp lval = translateLVal(node.children.get(0));
-        LinkedList<LLVMInstruction> instructions = new LinkedList<>(lval.instructions);
-
-        CallInst callInst = new CallInst(LLVMType.TypeID.IntegerTyID, "getchar");
-        instructions.add(callInst);
-        if (callInst.isDifferentType(lval.value)) {
-            LLVMInstruction fix = callInst.fix();
-            instructions.add(fix);
-            instructions.add(new StoreInst((UsableValue) fix, lval.value));
-        } else {
-            instructions.add(new StoreInst(callInst, lval.value));
-        }
-        return instructions;
-    }
-
-    private LinkedList<LLVMInstruction> translateGetIntStmt(ASTNode node) {
-        LLVMExp lval = translateLVal(node.children.get(0));
-        LinkedList<LLVMInstruction> instructions = new LinkedList<>(lval.instructions);
-
-        CallInst callInst = new CallInst(LLVMType.TypeID.IntegerTyID, "getint");
-        instructions.add(callInst);
-        if (callInst.isDifferentType(lval.value)) {
-            LLVMInstruction fix = callInst.fix();
-            instructions.add(fix);
-            instructions.add(new StoreInst((UsableValue) fix, lval.value));
-        } else {
-            instructions.add(new StoreInst(callInst, lval.value));
-        }
         return instructions;
     }
 
@@ -1134,7 +1093,7 @@ public class IRGenerator {
             LLVMExp exp = new LLVMExp();
             LinkedList<LLVMExp> realParams = new LinkedList<>();
             LeafASTNode leaf = (LeafASTNode) node.children.get(0);
-            LLVMFunction toCall = functions.get(leaf.token.token);
+            LLVMFunction toCall = resolveFunction(leaf);
             if (node.children.get(2).isNode("FuncRParams")) {
                 realParams = new LinkedList<>(translateFuncRParams(node.children.get(2)));
             }
@@ -1164,6 +1123,22 @@ public class IRGenerator {
             }
             return exp;
         }
+    }
+
+    private LLVMFunction resolveFunction(LeafASTNode functionName) {
+        LLVMFunction function = functions.get(functionName.token.token);
+        if (function != null) {
+            return function;
+        }
+
+        Symbol runtimeSymbol = RuntimeLibrary.resolve(functionName.token);
+        LLVMFunction runtimeFunction = new LLVMFunction(runtimeSymbol);
+        LinkedList<FuncFParam> parameters = new LinkedList<>();
+        for (Symbol parameter : runtimeSymbol.params) {
+            parameters.add(new FuncFParam(parameter));
+        }
+        runtimeFunction.setFParams(parameters);
+        return runtimeFunction;
     }
 
     private LinkedList<LLVMExp> translateFuncRParams(ASTNode node) {

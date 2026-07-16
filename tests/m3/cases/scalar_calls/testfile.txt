@@ -1,0 +1,8 @@
+int main() {
+    int value = get_int();
+    char marker = get_char();
+    put_int(value + 1);
+    put_char(marker);
+    printf("\n");
+    return 0;
+}
