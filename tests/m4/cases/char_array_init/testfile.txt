@@ -1,0 +1,4 @@
+int main() {
+    char letters[3] = {65, (char)66, (char)67};
+    return 0;
+}

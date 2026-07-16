@@ -80,6 +80,11 @@ public class ConstCalculator {
     private int calculateUnaryExp(ASTNode node) {
         if (node.children.size() == 1) {
             return calculatePrimaryExp(node.children.get(0));
+        } else if (node.children.get(0) instanceof LeafASTNode leaf
+                && leaf.token.isType(LexType.LPARENT)) {
+            int value = calculateUnaryExp(node.children.get(node.children.size() - 1));
+            LeafASTNode target = (LeafASTNode) node.children.get(1).children.get(0);
+            return target.token.isType(LexType.CHARTK) ? value & 0xff : value;
         } else if (node.children.get(0).name.equals("LEAF")) {
             LeafASTNode leaf = (LeafASTNode) node.children.get(0);
             String token = leaf.token.token;

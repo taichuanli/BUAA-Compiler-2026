@@ -1,0 +1,10 @@
+int main() {
+    int value = 1;
+    char letter = 'a';
+    char text[2] = "x";
+    printf("%d", letter);
+    printf("%c", value);
+    printf("%s", text);
+    printf("%s", value);
+    return 0;
+}

@@ -1,0 +1,8 @@
+char identity(char value) {
+    return value;
+}
+int main() {
+    char letter = identity(1);
+    int value = identity('a');
+    return 0;
+}

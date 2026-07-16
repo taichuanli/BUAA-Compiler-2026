@@ -1,0 +1,8 @@
+int main() {
+    int values[2] = {1, 2};
+    char index = '0';
+    values[index];
+    int scalar = 1;
+    scalar[0];
+    return 0;
+}

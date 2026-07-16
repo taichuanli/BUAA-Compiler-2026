@@ -587,9 +587,16 @@ public class Parser {
     }
 
     private ASTNode parseUnaryExp() {
-        // <UnaryExp> ::= <PrimaryExp> | <UnaryOp> <UnaryExp> | <Ident> '(' [<FuncRParams>] ')'
+        // <UnaryExp> ::= <PrimaryExp> | <UnaryOp> <UnaryExp> | <Ident> '(' [<FuncRParams>] ')' | '(' <BType> ')' <UnaryExp>
         ASTNode node = new ASTNode("UnaryExp");
-        if (curToken().isType(LexType.IDENFR) && isReachable(1) && tokenWithOffset(1).isType(LexType.LPARENT)) {
+        if (curToken().isType(LexType.LPARENT) && isReachable(1)
+                && (tokenWithOffset(1).isType(LexType.INTTK) || tokenWithOffset(1).isType(LexType.CHARTK))) {
+            node.addChild(parseTokenType(LexType.LPARENT));
+            node.addChild(parseBType());
+            checkRparent();
+            node.addChild(parseTokenType(LexType.RPARENT));
+            node.addChild(parseUnaryExp());
+        } else if (curToken().isType(LexType.IDENFR) && isReachable(1) && tokenWithOffset(1).isType(LexType.LPARENT)) {
             node.addChild(parseIdent());
             node.addChild(parseTokenType(LexType.LPARENT));
             if (!curToken().isType(LexType.RPARENT)) {

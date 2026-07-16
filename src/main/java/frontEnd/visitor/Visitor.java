@@ -25,6 +25,41 @@ public class Visitor {
         this.root = node;
     }
 
+    private SemanticType basicType(_SymbolType1 type) {
+        return type == _SymbolType1.CHAR ? SemanticType.CHAR : SemanticType.INT;
+    }
+
+    private SemanticType declaredType(_SymbolType1 type, boolean array) {
+        if (array) {
+            return type == _SymbolType1.CHAR ? SemanticType.CHAR_ARRAY : SemanticType.INT_ARRAY;
+        }
+        return basicType(type);
+    }
+
+    private int firstLine(ASTNode node) {
+        if (node instanceof LeafASTNode leaf) {
+            return leaf.token.lineNum;
+        }
+        for (ASTNode child : node.children) {
+            int line = firstLine(child);
+            if (line > 0) {
+                return line;
+            }
+        }
+        return 1;
+    }
+
+    private SemanticType sameOperandType(SemanticType left, SemanticType right, Token operator) {
+        if (left == SemanticType.ERROR || right == SemanticType.ERROR) {
+            return SemanticType.ERROR;
+        }
+        if (!left.isScalar() || left != right) {
+            Reporter.REPORTER.report(operator.lineNum, ErrorCode.TYPE_MISMATCH);
+            return SemanticType.ERROR;
+        }
+        return left;
+    }
+
     private Symbol getSymbol(Token token) {
         SymbolTable table = currTable;
         while (table != null) {
@@ -130,7 +165,7 @@ public class Visitor {
     private void visitMainFuncDef(ASTNode node) {
         // <MainFuncDef> ::= 'int' 'main' '(' ')' <Block>
         enterScope();
-        visitBlock(node.children.get(node.children.size() - 1), false, true, false);
+        visitBlock(node.children.get(node.children.size() - 1), SemanticType.INT, true, false);
         exitScope();
     }
 
@@ -167,33 +202,43 @@ public class Visitor {
     private void visitConstDef(ASTNode node, _SymbolType1 symbolType1) {
         // <ConstDef> ::= <Ident> '=' <ConstInitVal> | <Ident> '[' <ConstExp> ']' '=' <ConstInitVal>
         Token token = ((LeafASTNode) node.children.get(0)).token;
-        if (checkErrorB(token)) {
-            _SymbolType2 symbolType2 = _SymbolType2.CONST;
-            if (node.children.get(1).isNode("LEAF")) {
-                ASTNode child = node.children.get(1);
-                if (((LeafASTNode) child).token.isType(LexType.LBRACK)) {
-                    symbolType2 = _SymbolType2.CONSTARRAY;
-                    visitConstExp(node.children.get(2));
-                }
+        _SymbolType2 symbolType2 = _SymbolType2.CONST;
+        if (node.children.get(1) instanceof LeafASTNode bracket && bracket.token.isType(LexType.LBRACK)) {
+            symbolType2 = _SymbolType2.CONSTARRAY;
+            SemanticType lengthType = visitConstExp(node.children.get(2));
+            if (lengthType != SemanticType.INT && lengthType != SemanticType.ERROR) {
+                Reporter.REPORTER.report(bracket.token.lineNum, ErrorCode.TYPE_MISMATCH);
             }
+        }
+        if (checkErrorB(token)) {
             currTable.addSymbol(new Symbol(symbolId++, currTable.id, token, symbolType1, symbolType2));
         }
 
-        visitConstInitVal(node.children.get(node.children.size() - 1));
+        visitConstInitVal(node.children.get(node.children.size() - 1), declaredType(symbolType1, symbolType2 == _SymbolType2.CONSTARRAY));
     }
 
-    private void visitConstInitVal(ASTNode node) {
+    private void visitConstInitVal(ASTNode node, SemanticType declared) {
         // <ConstInitVal> ::= <ConstExp> | '{' [ <ConstExp> { ',' <ConstExp> } ] '}' | StringConst
+        SemanticType expected = declared.isArray()
+                ? (declared == SemanticType.CHAR_ARRAY ? SemanticType.CHAR : SemanticType.INT)
+                : declared;
+        boolean mismatch = false;
         for (ASTNode child : node.children) {
             if (child.isNode("ConstExp")) {
-                visitConstExp(child);
+                SemanticType actual = visitConstExp(child);
+                mismatch |= actual != SemanticType.ERROR && actual != expected;
+            } else if (child.isNode("StringConst") && declared != SemanticType.CHAR_ARRAY) {
+                mismatch = true;
             }
+        }
+        if (mismatch) {
+            Reporter.REPORTER.report(firstLine(node), ErrorCode.TYPE_MISMATCH);
         }
     }
 
-    private void visitConstExp(ASTNode node) {
+    private SemanticType visitConstExp(ASTNode node) {
         // <ConstExp> ::= <AddExp>
-        visitAddExp(node.children.get(0));
+        return visitAddExp(node.children.get(0));
     }
 
     private void visitVarDecl(ASTNode node) {
@@ -220,30 +265,40 @@ public class Visitor {
     private void visitVarDef(ASTNode node, _SymbolType1 symbolType1) {
         // <VarDef> ::= <Ident> [ '[' <ConstExp> ']' ] [ '=' <InitVal> ]
         Token token = ((LeafASTNode) node.children.get(0)).token;
-        if (checkErrorB(token)) {
-            _SymbolType2 symbolType2 = _SymbolType2.VAR;
-            if (node.children.size() > 1 && node.children.get(1).isNode("LEAF")) {
-                ASTNode child = node.children.get(1);
-                if (((LeafASTNode) child).token.isType(LexType.LBRACK)) {
-                    symbolType2 = _SymbolType2.ARRAY;
-                    visitConstExp(node.children.get(2));
-                }
+        _SymbolType2 symbolType2 = _SymbolType2.VAR;
+        if (node.children.size() > 1 && node.children.get(1) instanceof LeafASTNode bracket
+                && bracket.token.isType(LexType.LBRACK)) {
+            symbolType2 = _SymbolType2.ARRAY;
+            SemanticType lengthType = visitConstExp(node.children.get(2));
+            if (lengthType != SemanticType.INT && lengthType != SemanticType.ERROR) {
+                Reporter.REPORTER.report(bracket.token.lineNum, ErrorCode.TYPE_MISMATCH);
             }
-
+        }
+        if (checkErrorB(token)) {
             currTable.addSymbol(new Symbol(symbolId++, currTable.id, token, symbolType1, symbolType2));
         }
 
         if (node.children.get(node.children.size() - 1).isNode("InitVal")) {
-            visitInitVal(node.children.get(node.children.size() - 1));
+            visitInitVal(node.children.get(node.children.size() - 1), declaredType(symbolType1, symbolType2 == _SymbolType2.ARRAY));
         }
     }
 
-    private void visitInitVal(ASTNode node) {
+    private void visitInitVal(ASTNode node, SemanticType declared) {
         // <InitVal> ::= <StringConst> | '{' [ <Exp> { ',' <Exp> } ] '}' | <Exp>
+        SemanticType expected = declared.isArray()
+                ? (declared == SemanticType.CHAR_ARRAY ? SemanticType.CHAR : SemanticType.INT)
+                : declared;
+        boolean mismatch = false;
         for (ASTNode child : node.children) {
             if (child.isNode("Exp")) {
-                visitExp(child);
+                SemanticType actual = visitExp(child);
+                mismatch |= actual != SemanticType.ERROR && actual != expected;
+            } else if (child.isNode("StringConst") && declared != SemanticType.CHAR_ARRAY) {
+                mismatch = true;
             }
+        }
+        if (mismatch) {
+            Reporter.REPORTER.report(firstLine(node), ErrorCode.TYPE_MISMATCH);
         }
     }
 
@@ -274,13 +329,9 @@ public class Visitor {
             currTable.addSymbol(symbol);
         }
 
-        boolean checkErrorF = false;
-        boolean checkErrorG = false;
-        if (symbolType1 == _SymbolType1.VOID) {
-            checkErrorF = true;
-        } else {
-            checkErrorG = true;
-        }
+        SemanticType returnType = symbolType1 == _SymbolType1.VOID
+                ? SemanticType.VOID : basicType(symbolType1);
+        boolean checkErrorG = returnType != SemanticType.VOID;
         enterScope();
         if (node.children.get(3).isNode("FuncFParams")) {
             ArrayList<Symbol> paras = visitFParams(node.children.get(3));
@@ -289,7 +340,7 @@ public class Visitor {
             }
         }
         ASTNode blockNode = node.children.get(node.children.size() - 1);
-        visitBlock(blockNode, checkErrorF, checkErrorG, false);
+        visitBlock(blockNode, returnType, checkErrorG, false);
         exitScope();
     }
 
@@ -337,12 +388,12 @@ public class Visitor {
 
     }
 
-    private void visitBlock(ASTNode node, boolean checkErrorF, boolean checkErrorG, boolean inLoop) {
+    private void visitBlock(ASTNode node, SemanticType returnType, boolean checkErrorG, boolean inLoop) {
         // <Block> ::= '{' { <BlockItem> } '}'
         boolean isReturn = false;
         for (ASTNode child : node.children) {
             if (child.isNode("BlockItem")) {
-                isReturn = visitBlockItem(child, checkErrorF, inLoop);
+                isReturn = visitBlockItem(child, returnType, inLoop);
             }
         }
         if (checkErrorG && !isReturn) {
@@ -359,18 +410,18 @@ public class Visitor {
      * @param checkErrorF 是否检查 return 语句
      * @return 是否是 return 语句
      */
-    private boolean visitBlockItem(ASTNode node, boolean checkErrorF, boolean inLoop) {
+    private boolean visitBlockItem(ASTNode node, SemanticType returnType, boolean inLoop) {
         // <BlockItem> ::= <Stmt> | <Decl>
         ASTNode child = node.children.get(0);
         if (child.isNode("Stmt")) {
-            return visitStmt(child, checkErrorF, inLoop);
+            return visitStmt(child, returnType, inLoop);
         } else {
             visitDecl(child);
             return false;
         }
     }
 
-    private boolean visitStmt(ASTNode node, boolean checkErrorF, boolean inLoop) {
+    private boolean visitStmt(ASTNode node, SemanticType returnType, boolean inLoop) {
         /*
            <Stmt> ::= <Block>
                     | 'if' '(' <Cond> ')' <Stmt> [ 'else' <Stmt> ]
@@ -385,7 +436,7 @@ public class Visitor {
         ArrayList<ASTNode> children = node.children;
         if (children.get(0).isNode("Block")) {
             enterScope();
-            visitBlock(children.get(0), checkErrorF, false, inLoop);
+            visitBlock(children.get(0), returnType, false, inLoop);
             exitScope();
         } else if (children.get(0).isNode("LEAF")) {
             Token token = ((LeafASTNode) children.get(0)).token;
@@ -394,58 +445,78 @@ public class Visitor {
                 visitCond(children.get(i++));
                 while (i < children.size()) {
                     if (children.get(i).isNode("Stmt")) {
-                        visitStmt(children.get(i), checkErrorF, inLoop);
+                        visitStmt(children.get(i), returnType, inLoop);
                     }
                     i++;
                 }
             } else if (token.isType(LexType.WHILETK)) {
                 visitCond(children.get(2));
-                visitStmt(children.get(children.size() - 1), checkErrorF, true);
+                visitStmt(children.get(children.size() - 1), returnType, true);
             } else if (token.isType(LexType.BREAKTK) || token.isType(LexType.CONTINUETK)) {
                 if (!inLoop) {
                     Reporter.REPORTER.report(token.lineNum, ErrorCode.INVALID_CONTROL_FLOW);
                 }
             } else if (token.isType(LexType.RETURNTK)) {
                 if (1 < children.size() && children.get(1).isNode("Exp")) {
-                    visitExp(children.get(1));
-                    if (checkErrorF) {
+                    SemanticType actual = visitExp(children.get(1));
+                    if (returnType == SemanticType.VOID) {
                         Reporter.REPORTER.report(token.lineNum, ErrorCode.VOID_FUNCTION_RETURNS_VALUE);
+                    } else if (actual != SemanticType.ERROR && actual != returnType) {
+                        Reporter.REPORTER.report(token.lineNum, ErrorCode.TYPE_MISMATCH);
                     }
+                } else if (returnType != SemanticType.VOID) {
+                    Reporter.REPORTER.report(token.lineNum, ErrorCode.TYPE_MISMATCH);
                 }
                 return true;
             } else if (token.isType(LexType.PRINTFTK)) {
-                int cnt1 = 0, cnt2 = 0;
+                ArrayList<SemanticType> expected = new ArrayList<>();
+                ArrayList<SemanticType> actual = new ArrayList<>();
                 String str = ((LeafASTNode) children.get(2).children.get(0)).token.token;
                 // 找到 %d 或 %c
                 for (int i = 0; i < str.length(); i++) {
                     if (str.charAt(i) == '%' && i + 1 < str.length()) {
-                        if (str.charAt(i + 1) == 'd' || str.charAt(i + 1) == 'c') {
-                            cnt1++;
+                        if (str.charAt(i + 1) == 'd') {
+                            expected.add(SemanticType.INT);
+                        } else if (str.charAt(i + 1) == 'c') {
+                            expected.add(SemanticType.CHAR);
+                        } else if (str.charAt(i + 1) == 's') {
+                            expected.add(SemanticType.CHAR_ARRAY);
                         }
                     }
                 }
 
                 for (ASTNode child : children) {
                     if (child.isNode("Exp")) {
-                        visitExp(child);
-                        cnt2++;
+                        actual.add(visitExp(child));
                     }
                 }
 
-                if (cnt1 != cnt2) {
+                if (expected.size() != actual.size()) {
                     Reporter.REPORTER.report(token.lineNum, ErrorCode.PRINTF_ARGUMENT_COUNT_MISMATCH);
+                } else {
+                    for (int i = 0; i < expected.size(); i++) {
+                        if (actual.get(i) != SemanticType.ERROR && expected.get(i) != actual.get(i)) {
+                            Reporter.REPORTER.report(token.lineNum, ErrorCode.TYPE_MISMATCH);
+                            break;
+                        }
+                    }
                 }
             }
         } else if (children.get(0).isNode("LVal")) {
-            SymbolType symbolType = visitLVal(children.get(0));
+            SemanticType leftType = visitLVal(children.get(0));
             ASTNode ident = children.get(0).children.get(0);
+            SymbolType symbolType = getSymbol(((LeafASTNode) ident).token).symbolType;
 
             if (isConst(symbolType)) {
                 Reporter.REPORTER.report(((LeafASTNode) ident).token.lineNum, ErrorCode.CONST_ASSIGNMENT);
             }
 
             if (children.get(2).isNode("Exp")) {
-                visitExp(children.get(2));
+                SemanticType rightType = visitExp(children.get(2));
+                if (leftType != SemanticType.ERROR && rightType != SemanticType.ERROR && leftType != rightType) {
+                    Token assign = ((LeafASTNode) children.get(1)).token;
+                    Reporter.REPORTER.report(assign.lineNum, ErrorCode.TYPE_MISMATCH);
+                }
             }
         } else if (children.get(0).isNode("Exp")) {
             visitExp(children.get(0));
@@ -455,102 +526,132 @@ public class Visitor {
 
     private boolean isConst(SymbolType symbolType) {
         return switch (symbolType) {
-            case ConstInt, ConstChar -> true;
+            case ConstInt, ConstChar, ConstIntArray, ConstCharArray -> true;
             default -> false;
         };
     }
 
-    private void visitCond(ASTNode node) {
+    private SemanticType visitCond(ASTNode node) {
         // <Cond> ::= <LOrExp>
-        visitLOrExp(node.children.get(0));
+        return visitLOrExp(node.children.get(0));
     }
 
-    private void visitLOrExp(ASTNode node) {
+    private SemanticType visitLOrExp(ASTNode node) {
         // <LOrExp> ::= <LOrExp> '||' <LAndExp>  | <LAndExp>
         if (node.children.size() == 1) {
-            visitLAndExp(node.children.get(0));
+            return visitLAndExp(node.children.get(0));
         } else {
-            visitLOrExp(node.children.get(0));
-            visitLAndExp(node.children.get(2));
+            SemanticType left = visitLOrExp(node.children.get(0));
+            SemanticType right = visitLAndExp(node.children.get(2));
+            sameOperandType(left, right, ((LeafASTNode) node.children.get(1)).token);
+            return SemanticType.INT;
         }
     }
 
-    private void visitLAndExp(ASTNode node) {
+    private SemanticType visitLAndExp(ASTNode node) {
         // <LAndExp> ::= <LAndExp> '&&' <EqExp>  | <EqExp>
         if (node.children.size() == 1) {
-            visitEqExp(node.children.get(0));
+            return visitEqExp(node.children.get(0));
         } else {
-            visitLAndExp(node.children.get(0));
-            visitEqExp(node.children.get(2));
+            SemanticType left = visitLAndExp(node.children.get(0));
+            SemanticType right = visitEqExp(node.children.get(2));
+            sameOperandType(left, right, ((LeafASTNode) node.children.get(1)).token);
+            return SemanticType.INT;
         }
     }
 
-    private void visitEqExp(ASTNode node) {
+    private SemanticType visitEqExp(ASTNode node) {
         // <EqExp> ::= <EqExp> ('==' | '!=') <RelExp> | <RelExp>
         if (node.children.size() == 1) {
-            visitRelExp(node.children.get(0));
+            return visitRelExp(node.children.get(0));
         } else {
-            visitEqExp(node.children.get(0));
-            visitRelExp(node.children.get(2));
+            SemanticType left = visitEqExp(node.children.get(0));
+            SemanticType right = visitRelExp(node.children.get(2));
+            sameOperandType(left, right, ((LeafASTNode) node.children.get(1)).token);
+            return SemanticType.INT;
         }
     }
 
-    private void visitRelExp(ASTNode node) {
+    private SemanticType visitRelExp(ASTNode node) {
         // <RelExp> ::= <RelExp> ('<' | '<=' | '>' | '>=' ) <AddExp> | <AddExp>
         if (node.children.size() == 1) {
-            visitAddExp(node.children.get(0));
+            return visitAddExp(node.children.get(0));
         } else {
-            visitRelExp(node.children.get(0));
-            visitAddExp(node.children.get(2));
+            SemanticType left = visitRelExp(node.children.get(0));
+            SemanticType right = visitAddExp(node.children.get(2));
+            sameOperandType(left, right, ((LeafASTNode) node.children.get(1)).token);
+            return SemanticType.INT;
         }
     }
 
-    private SymbolType visitAddExp(ASTNode node) {
+    private SemanticType visitAddExp(ASTNode node) {
         // <AddExp> ::= <AddExp> <AddOp> <MulExp> | <MulExp>
         if (node.children.size() == 1) {
             return visitMulExp(node.children.get(0));
         } else {
-            visitAddExp(node.children.get(0));
-            visitMulExp(node.children.get(2));
-            return SymbolType.Int;
+            SemanticType left = visitAddExp(node.children.get(0));
+            SemanticType right = visitMulExp(node.children.get(2));
+            return sameOperandType(left, right, ((LeafASTNode) node.children.get(1)).token);
         }
     }
 
-    private SymbolType visitMulExp(ASTNode node) {
+    private SemanticType visitMulExp(ASTNode node) {
         // <MulExp> ::= <MulExp> <MulOp> <UnaryExp> | <UnaryExp>
         if (node.children.size() == 1) {
             return visitUnaryExp(node.children.get(0));
         } else {
-            visitMulExp(node.children.get(0));
-            visitUnaryExp(node.children.get(2));
-            return SymbolType.Int;
+            SemanticType left = visitMulExp(node.children.get(0));
+            SemanticType right = visitUnaryExp(node.children.get(2));
+            return sameOperandType(left, right, ((LeafASTNode) node.children.get(1)).token);
         }
     }
 
-    private SymbolType visitUnaryExp(ASTNode node) {
-        // <UnaryExp> ::= <PrimaryExp> | <UnaryOp> <UnaryExp> | <Ident> '(' [<FuncRParams>] ')'
+    private SemanticType visitUnaryExp(ASTNode node) {
+        // <UnaryExp> ::= <PrimaryExp> | <UnaryOp> <UnaryExp> | <Ident> '(' [<FuncRParams>] ')' | '(' <BType> ')' <UnaryExp>
         if (node.children.get(0).isNode("PrimaryExp")) {
             return visitPrimaryExp(node.children.get(0));
         } else if (node.children.get(0).isNode("UnaryOp")) {
-            return visitUnaryExp(node.children.get(1));
+            SemanticType operand = visitUnaryExp(node.children.get(1));
+            Token operator = ((LeafASTNode) node.children.get(0).children.get(0)).token;
+            if (operand != SemanticType.ERROR && !operand.isScalar()) {
+                Reporter.REPORTER.report(operator.lineNum, ErrorCode.TYPE_MISMATCH);
+                return SemanticType.ERROR;
+            }
+            return operator.isType(LexType.NOT) ? SemanticType.INT : operand;
         } else if (node.children.get(0).isNode("LEAF")) {
             Token token = ((LeafASTNode) node.children.get(0)).token;
 
-            checkErrorC(token);
+            if (token.isType(LexType.LPARENT)) {
+                LeafASTNode target = (LeafASTNode) node.children.get(1).children.get(0);
+                visitUnaryExp(node.children.get(node.children.size() - 1));
+                return target.token.isType(LexType.CHARTK) ? SemanticType.CHAR : SemanticType.INT;
+            }
 
-            ArrayList<SymbolType> paras;
+            checkErrorC(token);
+            Symbol function = getSymbol(token);
+
+            ArrayList<SemanticType> paras;
             if (2 < node.children.size() && node.children.get(2).isNode("FuncRParams")) {
                 paras = visitFuncRParams(node.children.get(2));
             } else {
                 paras = new ArrayList<>();
             }
 
-            if (paras.size() != getSymbol(token).params.size()) {
+            if (function.symbolType != SymbolType.ERROR && !SemanticType.isFunction(function.symbolType)) {
+                Reporter.REPORTER.report(token.lineNum, ErrorCode.TYPE_MISMATCH);
+                return SemanticType.ERROR;
+            }
+            if (function.symbolType == SymbolType.ERROR) {
+                return SemanticType.ERROR;
+            }
+
+            if (paras.size() != function.params.size()) {
                 Reporter.REPORTER.report(token.lineNum, ErrorCode.FUNCTION_ARGUMENT_COUNT_MISMATCH);
             } else {
                 boolean flag = false;
                 for (int i = 0; i < paras.size(); i++) {
-                    if (!canAccept(getSymbol(token).params.get(i).symbolType, paras.get(i))) {
+                    SemanticType formal = SemanticType.fromSymbol(function.params.get(i).symbolType);
+                    if (paras.get(i) != SemanticType.ERROR && formal != paras.get(i)) {
                         flag = true;
                     }
                 }
@@ -559,37 +660,14 @@ public class Visitor {
                 }
             }
 
-            return getSymbol(token).symbolType;
+            return SemanticType.fromSymbol(function.symbolType);
         }
-        return SymbolType.ERROR;
+        return SemanticType.ERROR;
     }
 
-    private boolean isArray(SymbolType symbolType) {
-        return switch (symbolType) {
-            case IntArray, ConstIntArray, CharArray, ConstCharArray -> true;
-            default -> false;
-        };
-    }
-
-    private boolean canAccept(SymbolType formal, SymbolType real) {
-        if (isArray(formal) != isArray(real)) {
-            return false;
-        }
-
-        if (formal == SymbolType.CharArray || formal == SymbolType.ConstCharArray) {
-            return real == SymbolType.CharArray || real == SymbolType.ConstCharArray;
-        }
-
-        if (formal == SymbolType.IntArray || formal == SymbolType.ConstIntArray) {
-            return real == SymbolType.IntArray || real == SymbolType.ConstIntArray;
-        }
-
-        return true;
-    }
-
-    private ArrayList<SymbolType> visitFuncRParams(ASTNode node) {
+    private ArrayList<SemanticType> visitFuncRParams(ASTNode node) {
         // FuncRParams ::= <Exp> {',' <Exp>}
-        ArrayList<SymbolType> paras = new ArrayList<>();
+        ArrayList<SemanticType> paras = new ArrayList<>();
         for (ASTNode child : node.children) {
             if (child.isNode("Exp")) {
                 paras.add(visitExp(child));
@@ -598,37 +676,53 @@ public class Visitor {
         return paras;
     }
 
-    private SymbolType visitPrimaryExp(ASTNode node) {
+    private SemanticType visitPrimaryExp(ASTNode node) {
         // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number> | <Character>
         if (node.children.size() > 1) {
             return visitExp(node.children.get(1));
         } else if (node.children.get(0).isNode("LVal")) {
             return visitLVal(node.children.get(0));
         } else if (node.children.get(0).isNode("Number")) {
-            return SymbolType.ConstInt;
+            return SemanticType.INT;
         } else if (node.children.get(0).isNode("Character")) {
-            return SymbolType.ConstChar;
+            return SemanticType.CHAR;
         }
-        return SymbolType.ERROR;
+        return SemanticType.ERROR;
     }
 
-    private SymbolType visitLVal(ASTNode node) {
+    private SemanticType visitLVal(ASTNode node) {
         // <LVal> ::= <Ident> [ '[' <Exp> ']' ]
         Token token = ((LeafASTNode) node.children.get(0)).token;
         checkErrorC(token);
 
+        Symbol symbol = getSymbol(token);
+        if (symbol.symbolType == SymbolType.ERROR) {
+            return SemanticType.ERROR;
+        }
+        if (SemanticType.isFunction(symbol.symbolType)) {
+            Reporter.REPORTER.report(token.lineNum, ErrorCode.TYPE_MISMATCH);
+            return SemanticType.ERROR;
+        }
+
+        SemanticType base = SemanticType.fromSymbol(symbol.symbolType);
         if (node.children.size() == 1) {
-            return getSymbol(token).symbolType;
+            return base;
         } else {
-            visitExp(node.children.get(2));
-            String origin = String.valueOf(getSymbol(token).symbolType);
-            origin = origin.substring(0, origin.length() - 5);
-            return SymbolType.valueOf(origin);
+            Token bracket = ((LeafASTNode) node.children.get(1)).token;
+            SemanticType index = visitExp(node.children.get(2));
+            if (!base.isArray()) {
+                Reporter.REPORTER.report(bracket.lineNum, ErrorCode.TYPE_MISMATCH);
+                return SemanticType.ERROR;
+            }
+            if (index != SemanticType.ERROR && index != SemanticType.INT) {
+                Reporter.REPORTER.report(bracket.lineNum, ErrorCode.TYPE_MISMATCH);
+            }
+            return base == SemanticType.CHAR_ARRAY ? SemanticType.CHAR : SemanticType.INT;
         }
 
     }
 
-    private SymbolType visitExp(ASTNode node) {
+    private SemanticType visitExp(ASTNode node) {
         // <Exp> ::= <AddExp>
         return visitAddExp(node.children.get(0));
     }

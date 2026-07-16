@@ -1,0 +1,9 @@
+int function() {
+    return 1;
+}
+int main() {
+    int scalar = 1;
+    scalar();
+    scalar = function;
+    return 0;
+}

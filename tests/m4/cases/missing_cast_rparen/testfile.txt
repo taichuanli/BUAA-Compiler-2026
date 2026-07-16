@@ -1,0 +1,5 @@
+int main() {
+    int value = 65;
+    char letter = (char value;
+    return 0;
+}

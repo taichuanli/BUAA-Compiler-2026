@@ -10,7 +10,8 @@
 - M1 已完成课程错误码枚举化，以及 2026 新关键字和冒号的词法接入；
 - M2 已完成 `while` 的 Parser、Visitor、IR 和 MIPS 链路，并删除旧 `for` 文法；
 - M3 已将 `get_int`、`get_char`、`put_int`、`put_char` 接入普通函数调用链，并删除旧 `getint/getchar` 特殊语句；
-- 字符串 I/O、`switch`、`static` 和严格类型系统仍待后续迭代。
+- M4 已加入独立表达式类型系统、完整课程类型错误 `e` 与 `(int)` / `(char)` 显式转换；
+- 字符串 I/O、`switch`、`static` 和字符字节级后端仍待后续迭代。
 
 ## 编译流水线
 
@@ -59,7 +60,7 @@ src/main/java/
 
 ## 后续升级方向
 
-1. 重构类型系统和表达式类型推导，加入显式类型转换；
-2. 实现静态局部变量和 `switch`；
-3. 修正 MIPS 字符数组的字节存储与寻址，再接入 `get_string`、`put_string` 和 `%s`；
+1. 实现 `switch` 及其控制流错误；
+2. 修正 MIPS 字符数组的字节存储与寻址，再接入 `get_string`、`put_string` 和 `%s`；
+3. 实现局部 `static`；
 4. 接入 `coverage-2026`、`testcase-2026` 和 `pal` 进行回归与对拍。

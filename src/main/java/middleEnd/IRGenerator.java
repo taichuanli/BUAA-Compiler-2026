@@ -1073,6 +1073,25 @@ public class IRGenerator {
     private LLVMExp translateUnaryExp(ASTNode node) {
         if (node.children.size() == 1) {
             return translatePrimaryExp(node.children.get(0));
+        } else if (node.children.get(0) instanceof LeafASTNode leaf
+                && leaf.token.isType(LexType.LPARENT)) {
+            LLVMExp operand = translateUnaryExp(node.children.get(node.children.size() - 1));
+            LeafASTNode target = (LeafASTNode) node.children.get(1).children.get(0);
+            LLVMType.TypeID targetType = target.token.isType(LexType.CHARTK)
+                    ? LLVMType.TypeID.CharTyID : LLVMType.TypeID.IntegerTyID;
+            if (operand instanceof LLVMConst constant) {
+                if (targetType == LLVMType.TypeID.CharTyID) {
+                    constant.constValue &= 0xff;
+                }
+                constant.changeType(targetType);
+            } else if (!operand.value.toLLVMType().equals(targetType.toString())) {
+                if (targetType == LLVMType.TypeID.CharTyID) {
+                    operand.addUsableInstruction(new TruncInst(operand.value, targetType));
+                } else {
+                    operand.addUsableInstruction(new ZextInst(operand.value, targetType));
+                }
+            }
+            return operand;
         } else if (node.children.get(0).isNode("UnaryOp")) {
             LeafASTNode leaf = (LeafASTNode) node.children.get(0).children.get(0);
             LLVMExp unaryExp = translateUnaryExp(node.children.get(1));

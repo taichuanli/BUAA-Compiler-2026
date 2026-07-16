@@ -1,0 +1,10 @@
+char bump(char value) {
+    return value + (char)1;
+}
+int main() {
+    int code = 65;
+    char letter = (char)code;
+    int restored = (int)bump(letter);
+    printf("%c %d\n", letter, restored);
+    return 0;
+}

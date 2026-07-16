@@ -24,5 +24,7 @@ M1 已确定的取舍
 [PENDING][runtime-string] char 字节访存和地址传递稳定后，实现 get_string、用户直接调用 put_string 以及 printf 的 %s；当前仅由 printf 内部使用 put_string 输出常量字符串。
 [PENDING][switch] 使用已加入的 SWITCHTK、CASETK、DEFAULTTK、COLON，实现 Parser、错误 e/m/n、fall-through IR 和 break 目标处理。
 [PENDING][static] 使用已加入的 STATICTK，实现局部 static 的符号属性、静态存储期和全局数据区降低。
-[PENDING][type-system] 严格类型迭代时补全错误 e；M1 只迁移现有判断，不改变现有类型兼容逻辑。
+[DONE][M4][type-system] 新增独立的 SemanticType，补全 int/char/数组/void 的运算、赋值、初始化、返回、参数、数组下标、标识符误用和 printf 类型错误 e；SymbolType 与 symbol.txt 格式保持不变。
+[DONE][M4][explicit-cast] Parser、常量折叠和 IR 已支持 `(int)` / `(char)` 显式转换，缺少右括号继续使用 j；IR 以 zext/trunc 明确表示转换。
+[DECISION][M4][printf-s] 语义分析已识别 `%s` 并要求 char[]，避免误报参数个数 l；实际 `%s` 输出及字符串运行库仍由 runtime-string 迭代完成。
 [PENDING][backend] 后端边界迭代时再处理 MIPSManager 重置、char 字节访存和立即数/偏移范围，不在 M1 修改。
