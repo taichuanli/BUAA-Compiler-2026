@@ -1,0 +1,11 @@
+int main() {
+    char letter = 'A';
+    switch (letter) {
+        case 65: break;
+    }
+    int number = 65;
+    switch (number) {
+        case 'A': break;
+    }
+    return 0;
+}

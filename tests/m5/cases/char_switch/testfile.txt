@@ -1,0 +1,11 @@
+int main() {
+    char selector = 'B';
+    int result = 0;
+    switch (selector) {
+        case 'A': result = 1; break;
+        case 'B': result = 2; break;
+        default: result = 3;
+    }
+    put_int(result);
+    return 0;
+}

@@ -27,7 +27,7 @@ public class IRGenerator {
     private LLVMType.TypeID funcRetType;
     private final LLVMModule module = new LLVMModule();
     private int strNum = 1;
-    private final Stack<LLVMLabel> loopBreakLabels = new Stack<>();
+    private final Stack<LLVMLabel> breakLabels = new Stack<>();
     private final Stack<LLVMLabel> loopContinueLabels = new Stack<>();
     public IRGenerator(ASTNode root, HashMap<Integer, SymbolTable> oldSymbolTables) {
         this.root = root;
@@ -374,6 +374,7 @@ public class IRGenerator {
             switch (child.token.type) {
                 case IFTK       -> instructions.addAll(translateIfStmt(node));
                 case WHILETK    -> instructions.addAll(translateWhileStmt(node));
+                case SWITCHTK   -> instructions.addAll(translateSwitchStmt(node));
                 case BREAKTK    -> instructions.addAll(translateBreakStmt());
                 case PRINTFTK   -> instructions.addAll(translatePrintfStmt(node));
                 case RETURNTK   -> instructions.addAll(translateReturnStmt(node));
@@ -422,7 +423,7 @@ public class IRGenerator {
 
     private LinkedList<LLVMInstruction> translateBreakStmt() {
         LinkedList<LLVMInstruction> instructions = new LinkedList<>();
-        instructions.add(new BranchInst(loopBreakLabels.peek()));
+        instructions.add(new BranchInst(breakLabels.peek()));
         instructions.add(new LLVMLabel());
         return instructions;
     }
@@ -719,10 +720,10 @@ public class IRGenerator {
         LinkedList<LLVMInstruction> condInstructions =
                 translateFromCond(node.children.get(2), condIsTrue, condIsFalse);
 
-        loopBreakLabels.push(condIsFalse);
+        breakLabels.push(condIsFalse);
         loopContinueLabels.push(toCond);
         LinkedList<LLVMInstruction> bodyInstructions = translateStmt(node.children.get(4));
-        loopBreakLabels.pop();
+        breakLabels.pop();
         loopContinueLabels.pop();
 
         LinkedList<LLVMInstruction> instructions = new LinkedList<>();
@@ -734,6 +735,92 @@ public class IRGenerator {
         instructions.add(new BranchInst(toCond));
         instructions.add(condIsFalse);
         return instructions;
+    }
+
+    private LinkedList<LLVMInstruction> translateSwitchStmt(ASTNode node) {
+        LinkedList<LLVMInstruction> instructions = new LinkedList<>();
+        LLVMExp selector = translateExp(node.children.get(2));
+        instructions.addAll(selector.instructions);
+
+        LinkedList<ASTNode> cases = new LinkedList<>();
+        LinkedList<LLVMLabel> bodyLabels = new LinkedList<>();
+        LLVMLabel afterSwitch = new LLVMLabel();
+        LLVMLabel defaultLabel = afterSwitch;
+        for (ASTNode child : node.children) {
+            if (child.isNode("CaseStmt")) {
+                cases.add(child);
+                LLVMLabel bodyLabel = new LLVMLabel();
+                bodyLabels.add(bodyLabel);
+                Token label = ((LeafASTNode) child.children.get(0)).token;
+                if (label.isType(LexType.DEFAULTTK)) {
+                    defaultLabel = bodyLabel;
+                }
+            }
+        }
+
+        LinkedList<Integer> ordinaryCases = new LinkedList<>();
+        for (int i = 0; i < cases.size(); i++) {
+            Token label = ((LeafASTNode) cases.get(i).children.get(0)).token;
+            if (label.isType(LexType.CASETK)) {
+                ordinaryCases.add(i);
+            }
+        }
+        if (ordinaryCases.isEmpty()) {
+            instructions.add(new BranchInst(defaultLabel));
+        } else {
+            for (int i = 0; i < ordinaryCases.size(); i++) {
+                int caseIndex = ordinaryCases.get(i);
+                ASTNode number = cases.get(caseIndex).children.get(1);
+                Token literal = ((LeafASTNode) number.children.get(0)).token;
+                LLVMType.TypeID type = selector.value.toLLVMType().equals("i8")
+                        ? LLVMType.TypeID.CharTyID : LLVMType.TypeID.IntegerTyID;
+                LLVMConst caseValue = new LLVMConst(type, literalValue(literal));
+                BinaryInst comparison = new BinaryInst(LLVMType.InstType.ICMP_EQ, selector.value, caseValue);
+                LLVMLabel onFalse = i + 1 < ordinaryCases.size() ? new LLVMLabel() : defaultLabel;
+                instructions.add(comparison);
+                instructions.add(new BranchInst(comparison, bodyLabels.get(caseIndex), onFalse));
+                if (i + 1 < ordinaryCases.size()) {
+                    instructions.add(onFalse);
+                }
+            }
+        }
+
+        breakLabels.push(afterSwitch);
+        for (int i = 0; i < cases.size(); i++) {
+            instructions.add(bodyLabels.get(i));
+            for (ASTNode child : cases.get(i).children) {
+                if (child.isNode("Stmt")) {
+                    instructions.addAll(translateStmt(child));
+                }
+            }
+            LLVMLabel fallThrough = i + 1 < cases.size() ? bodyLabels.get(i + 1) : afterSwitch;
+            instructions.add(new BranchInst(fallThrough));
+        }
+        breakLabels.pop();
+        instructions.add(afterSwitch);
+        return instructions;
+    }
+
+    private int literalValue(Token token) {
+        if (token.isType(LexType.INTCON)) {
+            return Integer.parseInt(token.token);
+        }
+        if (token.token.charAt(1) != '\\') {
+            return token.token.charAt(1);
+        }
+        return switch (token.token.charAt(2)) {
+            case '0' -> 0;
+            case 'a' -> 7;
+            case 'b' -> 8;
+            case 't' -> 9;
+            case 'n' -> 10;
+            case 'v' -> 11;
+            case 'f' -> 12;
+            case '"' -> 34;
+            case '\'' -> 39;
+            case '\\' -> 92;
+            default -> token.token.charAt(2);
+        };
     }
 
     private LinkedList<LLVMInstruction> translatePrintfStmt(ASTNode node) {
@@ -1176,30 +1263,8 @@ public class IRGenerator {
         } else if (node.children.get(0).isNode("LVal")) {
             return translateLValAsExp(node.children.get(0));
         } else {
-            int val;
-            String token = ((LeafASTNode) node.children.get(0).children.get(0)).token.token;
-            if (node.children.get(0).isNode("Number")) {
-                val = Integer.parseInt(token);
-            } else {
-                if (token.charAt(1) == '\\') {
-                    val = switch (token.charAt(2)) {
-                        case '0' -> 0;
-                        case 'a' -> 7;
-                        case 'b' -> 8;
-                        case 't' -> 9;
-                        case 'n' -> 10;
-                        case 'v' -> 11;
-                        case 'f' -> 12;
-                        case '\"' -> 34;
-                        case '\'' -> 39;
-                        case '\\' -> 92;
-                        default -> throw new RuntimeException("Unknown escape sequence");
-                    };
-                } else {
-                    val = token.charAt(1);
-                }
-            }
-            return new LLVMConst(LLVMType.TypeID.IntegerTyID, val);
+            Token token = ((LeafASTNode) node.children.get(0).children.get(0)).token;
+            return new LLVMConst(LLVMType.TypeID.IntegerTyID, literalValue(token));
         }
     }
 

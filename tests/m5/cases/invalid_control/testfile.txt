@@ -1,0 +1,8 @@
+int main() {
+    int selector = 1;
+    switch (selector) {
+        case 1: continue;
+    }
+    break;
+    return 0;
+}

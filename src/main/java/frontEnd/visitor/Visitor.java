@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Stack;
 
 public class Visitor {
@@ -165,7 +166,7 @@ public class Visitor {
     private void visitMainFuncDef(ASTNode node) {
         // <MainFuncDef> ::= 'int' 'main' '(' ')' <Block>
         enterScope();
-        visitBlock(node.children.get(node.children.size() - 1), SemanticType.INT, true, false);
+        visitBlock(node.children.get(node.children.size() - 1), SemanticType.INT, true, false, false);
         exitScope();
     }
 
@@ -340,7 +341,7 @@ public class Visitor {
             }
         }
         ASTNode blockNode = node.children.get(node.children.size() - 1);
-        visitBlock(blockNode, returnType, checkErrorG, false);
+        visitBlock(blockNode, returnType, checkErrorG, false, false);
         exitScope();
     }
 
@@ -388,12 +389,13 @@ public class Visitor {
 
     }
 
-    private void visitBlock(ASTNode node, SemanticType returnType, boolean checkErrorG, boolean inLoop) {
+    private void visitBlock(ASTNode node, SemanticType returnType, boolean checkErrorG,
+                            boolean canBreak, boolean canContinue) {
         // <Block> ::= '{' { <BlockItem> } '}'
         boolean isReturn = false;
         for (ASTNode child : node.children) {
             if (child.isNode("BlockItem")) {
-                isReturn = visitBlockItem(child, returnType, inLoop);
+                isReturn = visitBlockItem(child, returnType, canBreak, canContinue);
             }
         }
         if (checkErrorG && !isReturn) {
@@ -410,22 +412,25 @@ public class Visitor {
      * @param checkErrorF 是否检查 return 语句
      * @return 是否是 return 语句
      */
-    private boolean visitBlockItem(ASTNode node, SemanticType returnType, boolean inLoop) {
+    private boolean visitBlockItem(ASTNode node, SemanticType returnType,
+                                   boolean canBreak, boolean canContinue) {
         // <BlockItem> ::= <Stmt> | <Decl>
         ASTNode child = node.children.get(0);
         if (child.isNode("Stmt")) {
-            return visitStmt(child, returnType, inLoop);
+            return visitStmt(child, returnType, canBreak, canContinue);
         } else {
             visitDecl(child);
             return false;
         }
     }
 
-    private boolean visitStmt(ASTNode node, SemanticType returnType, boolean inLoop) {
+    private boolean visitStmt(ASTNode node, SemanticType returnType,
+                              boolean canBreak, boolean canContinue) {
         /*
            <Stmt> ::= <Block>
                     | 'if' '(' <Cond> ')' <Stmt> [ 'else' <Stmt> ]
                     | 'while' '(' <Cond> ')' <Stmt>
+                    | 'switch' '(' <Exp> ')' '{' { <CaseStmt> } '}'
                     | 'break' ';'
                     | 'continue' ';'
                     | 'return' [ <Exp> ] ';'
@@ -436,7 +441,7 @@ public class Visitor {
         ArrayList<ASTNode> children = node.children;
         if (children.get(0).isNode("Block")) {
             enterScope();
-            visitBlock(children.get(0), returnType, false, inLoop);
+            visitBlock(children.get(0), returnType, false, canBreak, canContinue);
             exitScope();
         } else if (children.get(0).isNode("LEAF")) {
             Token token = ((LeafASTNode) children.get(0)).token;
@@ -445,15 +450,21 @@ public class Visitor {
                 visitCond(children.get(i++));
                 while (i < children.size()) {
                     if (children.get(i).isNode("Stmt")) {
-                        visitStmt(children.get(i), returnType, inLoop);
+                        visitStmt(children.get(i), returnType, canBreak, canContinue);
                     }
                     i++;
                 }
             } else if (token.isType(LexType.WHILETK)) {
                 visitCond(children.get(2));
-                visitStmt(children.get(children.size() - 1), returnType, true);
-            } else if (token.isType(LexType.BREAKTK) || token.isType(LexType.CONTINUETK)) {
-                if (!inLoop) {
+                visitStmt(children.get(children.size() - 1), returnType, true, true);
+            } else if (token.isType(LexType.SWITCHTK)) {
+                visitSwitchStmt(children, returnType, canContinue);
+            } else if (token.isType(LexType.BREAKTK)) {
+                if (!canBreak) {
+                    Reporter.REPORTER.report(token.lineNum, ErrorCode.INVALID_CONTROL_FLOW);
+                }
+            } else if (token.isType(LexType.CONTINUETK)) {
+                if (!canContinue) {
                     Reporter.REPORTER.report(token.lineNum, ErrorCode.INVALID_CONTROL_FLOW);
                 }
             } else if (token.isType(LexType.RETURNTK)) {
@@ -534,6 +545,70 @@ public class Visitor {
     private SemanticType visitCond(ASTNode node) {
         // <Cond> ::= <LOrExp>
         return visitLOrExp(node.children.get(0));
+    }
+
+    private void visitSwitchStmt(ArrayList<ASTNode> children, SemanticType returnType,
+                                 boolean canContinue) {
+        Token switchToken = ((LeafASTNode) children.get(0)).token;
+        SemanticType switchType = visitExp(children.get(2));
+        if (switchType != SemanticType.ERROR && !switchType.isScalar()) {
+            Reporter.REPORTER.report(switchToken.lineNum, ErrorCode.TYPE_MISMATCH);
+        }
+
+        HashSet<Integer> caseValues = new HashSet<>();
+        boolean hasDefault = false;
+        for (ASTNode child : children) {
+            if (!child.isNode("CaseStmt")) {
+                continue;
+            }
+            Token label = ((LeafASTNode) child.children.get(0)).token;
+            if (label.isType(LexType.DEFAULTTK)) {
+                if (hasDefault) {
+                    Reporter.REPORTER.report(label.lineNum, ErrorCode.DUPLICATED_CASE);
+                }
+                hasDefault = true;
+            } else {
+                ASTNode number = child.children.get(1);
+                Token literal = ((LeafASTNode) number.children.get(0)).token;
+                int value = literalValue(literal);
+                if (!caseValues.add(value)) {
+                    Reporter.REPORTER.report(label.lineNum, ErrorCode.DUPLICATED_CASE);
+                } else {
+                    SemanticType caseType = literal.isType(LexType.CHRCON)
+                            ? SemanticType.CHAR : SemanticType.INT;
+                    if (switchType != SemanticType.ERROR && switchType != caseType) {
+                        Reporter.REPORTER.report(label.lineNum, ErrorCode.TYPE_MISMATCH);
+                    }
+                }
+            }
+            for (ASTNode statement : child.children) {
+                if (statement.isNode("Stmt")) {
+                    visitStmt(statement, returnType, true, canContinue);
+                }
+            }
+        }
+    }
+
+    private int literalValue(Token token) {
+        if (token.isType(LexType.INTCON)) {
+            return Integer.parseInt(token.token);
+        }
+        if (token.token.charAt(1) != '\\') {
+            return token.token.charAt(1);
+        }
+        return switch (token.token.charAt(2)) {
+            case '0' -> 0;
+            case 'a' -> 7;
+            case 'b' -> 8;
+            case 't' -> 9;
+            case 'n' -> 10;
+            case 'v' -> 11;
+            case 'f' -> 12;
+            case '"' -> 34;
+            case '\'' -> 39;
+            case '\\' -> 92;
+            default -> token.token.charAt(2);
+        };
     }
 
     private SemanticType visitLOrExp(ASTNode node) {
@@ -677,15 +752,14 @@ public class Visitor {
     }
 
     private SemanticType visitPrimaryExp(ASTNode node) {
-        // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number> | <Character>
+        // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number>
         if (node.children.size() > 1) {
             return visitExp(node.children.get(1));
         } else if (node.children.get(0).isNode("LVal")) {
             return visitLVal(node.children.get(0));
         } else if (node.children.get(0).isNode("Number")) {
-            return SemanticType.INT;
-        } else if (node.children.get(0).isNode("Character")) {
-            return SemanticType.CHAR;
+            Token number = ((LeafASTNode) node.children.get(0).children.get(0)).token;
+            return number.isType(LexType.CHRCON) ? SemanticType.CHAR : SemanticType.INT;
         }
         return SemanticType.ERROR;
     }

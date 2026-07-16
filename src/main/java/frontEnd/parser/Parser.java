@@ -213,6 +213,7 @@ public class Parser {
            <Stmt> ::= <Block>
                     | 'if' '(' <Cond> ')' <Stmt> [ 'else' <Stmt> ]
                     | 'while' '(' <Cond> ')' <Stmt>
+                    | 'switch' '(' <Exp> ')' '{' { <CaseStmt> } '}'
                     | 'break' ';'
                     | 'continue' ';'
                     | 'return' [ <Exp> ] ';'
@@ -241,6 +242,17 @@ public class Parser {
             checkRparent();
             node.addChild(parseTokenType(LexType.RPARENT));
             node.addChild(parseStmt());
+        } else if (curToken().isType(LexType.SWITCHTK)) {
+            node.addChild(parseTokenType(LexType.SWITCHTK));
+            node.addChild(parseTokenType(LexType.LPARENT));
+            node.addChild(parseExp());
+            checkRparent();
+            node.addChild(parseTokenType(LexType.RPARENT));
+            node.addChild(parseTokenType(LexType.LBRACE));
+            while (curToken().isType(LexType.CASETK) || curToken().isType(LexType.DEFAULTTK)) {
+                node.addChild(parseCaseStmt());
+            }
+            node.addChild(parseTokenType(LexType.RBRACE));
         } else if (curToken().isType(LexType.BREAKTK)) {
             node.addChild(parseTokenType(LexType.BREAKTK));
             checkSemicn();
@@ -320,6 +332,26 @@ public class Parser {
             node.addChild(parseTokenType(LexType.SEMICN));
         }
 
+        if (OUTPUT) {
+            sb.append(node.print()).append("\n");
+        }
+        return node;
+    }
+
+    private ASTNode parseCaseStmt() {
+        // <CaseStmt> ::= 'case' <Number> ':' { <Stmt> } | 'default' ':' { <Stmt> }
+        ASTNode node = new ASTNode("CaseStmt");
+        if (curToken().isType(LexType.CASETK)) {
+            node.addChild(parseTokenType(LexType.CASETK));
+            node.addChild(parseNumber());
+        } else {
+            node.addChild(parseTokenType(LexType.DEFAULTTK));
+        }
+        node.addChild(parseTokenType(LexType.COLON));
+        while (!curToken().isType(LexType.CASETK) && !curToken().isType(LexType.DEFAULTTK)
+                && !curToken().isType(LexType.RBRACE)) {
+            node.addChild(parseStmt());
+        }
         if (OUTPUT) {
             sb.append(node.print()).append("\n");
         }
@@ -686,7 +718,7 @@ public class Parser {
     }
 
     private ASTNode parsePrimaryExp() {
-        // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number> | <Character>
+        // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number>
         ASTNode node = new ASTNode("PrimaryExp");
         if (curToken().isType(LexType.LPARENT)) {
             node.addChild(parseTokenType(LexType.LPARENT));
@@ -695,10 +727,8 @@ public class Parser {
             node.addChild(parseTokenType(LexType.RPARENT));
         } else if (curToken().isType(LexType.IDENFR)) {
             node.addChild(parseLVal());
-        } else if (curToken().isType(LexType.INTCON)) {
-            node.addChild(parseNumber());
         } else {
-            node.addChild(parseChar());
+            node.addChild(parseNumber());
         }
 
         if (OUTPUT) {
@@ -725,19 +755,9 @@ public class Parser {
     }
 
     private ASTNode parseNumber() {
-        // <Number> ::= <IntConst>
+        // <Number> ::= <IntConst> | <CharConst>
         ASTNode node = new ASTNode("Number");
-        node.addChild(parseTokenType(LexType.INTCON));
-        if (OUTPUT) {
-            sb.append(node.print()).append("\n");
-        }
-        return node;
-    }
-
-    private ASTNode parseChar() {
-        // <Character> ::= <CharConst>
-        ASTNode node = new ASTNode("Character");
-        node.addChild(parseTokenType(LexType.CHRCON));
+        node.addChild(parseTokenType(curToken().isType(LexType.INTCON) ? LexType.INTCON : LexType.CHRCON));
         if (OUTPUT) {
             sb.append(node.print()).append("\n");
         }

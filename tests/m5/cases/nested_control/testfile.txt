@@ -1,0 +1,13 @@
+int main() {
+    int index = 0;
+    int sum = 0;
+    while (index < 3) {
+        index = index + 1;
+        switch (index) {
+            case 2: continue;
+            default: sum = sum + index; break;
+        }
+    }
+    put_int(sum);
+    return 0;
+}
