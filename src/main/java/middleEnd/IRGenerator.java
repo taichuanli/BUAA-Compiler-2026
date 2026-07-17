@@ -821,25 +821,7 @@ public class IRGenerator {
     }
 
     private int literalValue(Token token) {
-        if (token.isType(LexType.INTCON)) {
-            return Integer.parseInt(token.token);
-        }
-        if (token.token.charAt(1) != '\\') {
-            return token.token.charAt(1);
-        }
-        return switch (token.token.charAt(2)) {
-            case '0' -> 0;
-            case 'a' -> 7;
-            case 'b' -> 8;
-            case 't' -> 9;
-            case 'n' -> 10;
-            case 'v' -> 11;
-            case 'f' -> 12;
-            case '"' -> 34;
-            case '\'' -> 39;
-            case '\\' -> 92;
-            default -> token.token.charAt(2);
-        };
+        return LiteralValue.parse(token);
     }
 
     private LinkedList<LLVMInstruction> translatePrintfStmt(ASTNode node) {

@@ -1,0 +1,31 @@
+const int LENGTH = 3;
+int sum(int values[], int length) {
+    int index = 0, result = 0;
+    while (index < length) {
+        result = result + values[index];
+        index = index + 1;
+    }
+    return result;
+}
+char choose(char value) {
+    switch (value) {
+        case 'A':
+            value = value + (char)1;
+            break;
+        default:
+            value = 'Z';
+    }
+    return value;
+}
+int main() {
+    static int hits;
+    int values[LENGTH] = {1, 2, 3};
+    char text[3] = "ok";
+    if (sum(values, LENGTH) == 6) {
+        hits = hits + 1;
+    } else {
+        hits = 0;
+    }
+    printf("%s %d %c %d\n", text, sum(values, LENGTH), choose('A'), hits);
+    return 0;
+}

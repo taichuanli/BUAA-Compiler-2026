@@ -29,6 +29,7 @@ public class ConstInitVal extends InitVal {
                     case 'b' -> addConstExp(8);
                     case 't' -> addConstExp(9);
                     case 'n' -> addConstExp(10);
+                    case 'r' -> addConstExp(13);
                     case 'v' -> addConstExp(11);
                     case 'f' -> addConstExp(12);
                     case '\"' -> addConstExp(34);

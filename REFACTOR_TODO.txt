@@ -36,3 +36,6 @@ M1 已确定的取舍
 [DONE][M9][backend-state] 每次 MIPS 生成前重置 MIPSManager 的栈槽、寄存器池、引用分配和 CallInst 运行库标签；同一 JVM 连续编译不再继承后端状态。
 [DONE][M9][backend-immediate] addiu、lw/sw、lbu/sb 的立即数或基址偏移超过有符号 16 位时，统一使用 `$at` 装载 32 位常量并以寄存器运算展开；小偏移指令保持原样。
 [DECISION][M9][scratch-register] `$at` 仅由目标指令序列化阶段用于大立即数展开，不进入寄存器分配器，也不跨展开序列保存值。
+[DONE][M10][literal] CharConst 的转义求值已集中到 LiteralValue，并补齐 2026 规定的 `\r = 13`；Visitor、switch 降低和常量折叠不再维护重复转义表。
+[DONE][M10][audit] 最终回归已接入固定 MARS 用例，以及可选的同级 testcase-2026 全量审计；官方错误 58/58、正确程序编译 48/48 通过，47 个非性能程序与 GCC 输出一致。
+[LIMITATION][M10][performance] 官方 cr/perf 百万输入的未优化 MIPS 在 MARS 运行 240 秒仍未完成；输入 1000 时与 GCC 输出一致。当前重构以文法、语义和目标码正确性为范围，高级优化另立迭代。

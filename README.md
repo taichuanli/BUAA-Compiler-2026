@@ -16,7 +16,7 @@
 - M7 已实现 `get_string`、`put_string` 与 `printf %s`；
 - M8 已实现局部 `static` 的零/常量初始化、持久化标量与数组存储及嵌套作用域唯一命名；
 - M9 已实现跨次编译后端状态重置，并加固超过 16 位范围的栈调整与字/字节访存偏移；
-- 完整测试集审计与教程整理仍待最终迭代。
+- M10 已完成字符常量求值收口、官方测试集审计与最终交接文档，本轮 2026 兼容性重构完成。
 
 ## 编译流水线
 
@@ -53,6 +53,15 @@ mvn clean package
 java -jar target/buaa-compiler-2026-0.1.0-SNAPSHOT.jar
 ```
 
+项目也提供不依赖 Maven 下载插件的 javac 回归入口：
+
+```powershell
+tests\m10\run.cmd
+1..10 | ForEach-Object { cmd /c "tests\m$_\run.cmd" }
+```
+
+重新阅读项目时从 [重新上手与后续迭代指南](docs/REVIEW_AND_EXTENSION_GUIDE.md) 开始；最终功能边界和验证结果见 [2026 兼容性记录](docs/2026_COMPATIBILITY.md)。
+
 ## 源码结构
 
 ```text
@@ -63,7 +72,8 @@ src/main/java/
 └── backEnd/            # MIPS 表示与目标代码生成
 ```
 
-## 后续升级方向
+## 可选的后续升级方向
 
-1. 接入 `coverage-2026`、`testcase-2026` 和 `pal` 进行回归与对拍；
-2. 整理符号表、类型系统与语义分析教程。
+1. 为百万级运行用例增加中端或后端优化；
+2. 将 M10 的 GCC/MARS 差分流程接入持续集成；
+3. 在课程文法变化时按阶段继续扩展，而不是改写已稳定的流水线。

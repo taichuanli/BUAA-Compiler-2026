@@ -2,6 +2,7 @@ package middleEnd.utils;
 
 import frontEnd.ASTNode;
 import frontEnd.LeafASTNode;
+import frontEnd.LiteralValue;
 import frontEnd.Token;
 import frontEnd.lexer.LexType;
 import middleEnd.ConstInitVal;
@@ -123,26 +124,6 @@ public class ConstCalculator {
         if (token.isType(LexType.INTCON)) {
             return new TypedConst(Integer.parseInt(token.token), false);
         }
-        return new TypedConst(charValue(token), true);
-    }
-
-    private static int charValue(Token token) {
-        String value = token.token;
-        if (value.charAt(1) != '\\') {
-            return value.charAt(1);
-        }
-        return switch (value.charAt(2)) {
-            case '0' -> 0;
-            case 'a' -> 7;
-            case 'b' -> 8;
-            case 't' -> 9;
-            case 'n' -> 10;
-            case 'v' -> 11;
-            case 'f' -> 12;
-            case '"' -> 34;
-            case '\'' -> 39;
-            case '\\' -> 92;
-            default -> value.charAt(2);
-        };
+        return new TypedConst(LiteralValue.parse(token), true);
     }
 }

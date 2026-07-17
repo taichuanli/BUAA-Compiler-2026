@@ -1,0 +1,15 @@
+int calls = 0;
+int tick() {
+    calls = calls + 1;
+    return 1;
+}
+int main() {
+    if (0 && tick()) {
+        calls = calls + 10;
+    }
+    if (1 || tick()) {
+        ;
+    }
+    printf("%d\n", calls);
+    return 0;
+}
