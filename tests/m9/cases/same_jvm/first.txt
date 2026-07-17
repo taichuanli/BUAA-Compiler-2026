@@ -1,0 +1,12 @@
+int mix(int a, int b, int c, int d, int e) {
+    int x = a + b;
+    int y = c + d;
+    int z = x + y + e;
+    return z;
+}
+int main() {
+    char text[8];
+    get_string(text, 8);
+    printf("%s %d\n", text, mix(1, 2, 3, 4, 5));
+    return 0;
+}

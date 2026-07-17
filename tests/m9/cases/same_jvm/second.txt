@@ -1,0 +1,12 @@
+int calc(int a, int b, int c, int d, int e, int f) {
+    int p = a * b;
+    int q = c * d;
+    int r = e * f;
+    return p + q + r;
+}
+int main() {
+    char text[8];
+    get_string(text, 8);
+    printf("%s %d\n", text, calc(1, 2, 3, 4, 5, 6));
+    return 0;
+}

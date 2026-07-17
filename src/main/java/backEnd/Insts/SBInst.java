@@ -16,6 +16,6 @@ public class SBInst extends MIPSInst {
 
     @Override
     public String toString() {
-        return "sb " + rt + ", " + offset + "(" + base + ")";
+        return memoryAccess("sb", base, rt, offset);
     }
 }

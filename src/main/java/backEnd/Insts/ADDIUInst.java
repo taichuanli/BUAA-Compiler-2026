@@ -15,6 +15,6 @@ public class ADDIUInst extends backEnd.MIPSInst {
 
     @Override
     public String toString() {
-        return "addiu " + rt + ", " + rs + ", " + imm;
+        return addImmediate(rs, rt, imm);
     }
 }

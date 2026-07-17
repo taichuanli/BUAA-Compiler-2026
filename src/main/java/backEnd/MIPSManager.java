@@ -24,10 +24,19 @@ public class MIPSManager {
     private final UsableValue forRA = new LLVMLabel();
     private final HashMap<UsableValue, Register> globalRegMap = new HashMap<>();
     private MIPSManager() {
+        reset();
+    }
+
+    public void reset() {
+        offset = 0;
+        currentFunction = null;
+        offsetMap.clear();
+        tempRegs.clear();
         tempRegs.add(Register.T0);
         tempRegs.add(Register.T1);
         tempRegs.add(Register.T2);
-        
+
+        globalRegs.clear();
         globalRegs.add(Register.T3);
         globalRegs.add(Register.T4);
         globalRegs.add(Register.T5);
@@ -42,6 +51,10 @@ public class MIPSManager {
         globalRegs.add(Register.S4);
         globalRegs.add(Register.S5);
         globalRegs.add(Register.S6);
+        used = new LinkedList<>();
+        free = new LinkedList<>();
+        regIndex = 0;
+        globalRegMap.clear();
     }
 
     public static MIPSManager getInstance() {
@@ -65,6 +78,7 @@ public class MIPSManager {
         offsetMap.putIfAbsent(function, new HashMap<>());
         free = new LinkedList<>(tempRegs);
         used = new LinkedList<>();
+        regIndex = 0;
 //        regMap = new HashMap<>();
         offset = 0;
     }

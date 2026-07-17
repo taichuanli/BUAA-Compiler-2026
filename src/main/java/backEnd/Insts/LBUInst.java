@@ -16,6 +16,6 @@ public class LBUInst extends MIPSInst {
 
     @Override
     public String toString() {
-        return "lbu " + rt + ", " + offset + "(" + base + ")";
+        return memoryAccess("lbu", base, rt, offset);
     }
 }

@@ -1,0 +1,7 @@
+int main() {
+    char data[40000];
+    int marker = 123456789;
+    data[39999] = 'Q';
+    printf("%c %d\n", data[39999], marker);
+    return 0;
+}

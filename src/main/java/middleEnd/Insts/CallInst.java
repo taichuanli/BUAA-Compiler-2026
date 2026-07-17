@@ -133,6 +133,10 @@ public class CallInst extends LLVMInstruction implements UsableValue {
         return this.funcName.equals("put_string") || this.funcName.equals("put_char") || this.funcName.equals("put_int");
     }
 
+    public static void resetRuntimeState() {
+        runtimeLabelCounter = 0;
+    }
+
     private boolean isInput() {
         return this.funcName.equals("get_char") || this.funcName.equals("get_int");
     }

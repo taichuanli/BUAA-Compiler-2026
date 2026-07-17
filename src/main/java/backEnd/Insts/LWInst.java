@@ -16,6 +16,6 @@ public class LWInst extends MIPSInst {
 
     @Override
     public String toString() {
-        return "lw " + rt + ", " + offset + "(" + base + ")";
+        return memoryAccess("lw", base, rt, offset);
     }
 }

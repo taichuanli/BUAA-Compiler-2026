@@ -1,0 +1,6 @@
+int main() {
+    int high = 2147483647;
+    int low = -2147483647;
+    printf("%d %d\n", high, low);
+    return 0;
+}

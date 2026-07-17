@@ -16,6 +16,6 @@ public class SWInst extends MIPSInst {
 
     @Override
     public String toString() {
-        return "sw " + rt + ", " + offset + "(" + base + ")";
+        return memoryAccess("sw", base, rt, offset);
     }
 }

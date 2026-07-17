@@ -33,4 +33,6 @@ M1 已确定的取舍
 [DONE][M6][backend-char] 全局 char 使用 .byte，局部 char 按字节存取且分配块保持 4 字节对齐，数组 GEP 步长为 1，读取使用 lbu、写入使用 sb。
 [DONE][M6][char-arithmetic] char 值在 IR 中保留 i8，字符算术每步 trunc 到 0..255；常量折叠同步携带 int/char 类型，保证强转前后的模 256 语义一致。
 [DECISION][M6][spills] char 数据使用字节访存，但虚拟寄存器溢出槽、指针和函数参数仍统一占 4 字节，避免扩大调用约定改动。
-[PENDING][backend] 后端边界迭代时处理 MIPSManager 跨次编译重置和立即数/偏移范围；char 字节访存已在 M6 完成。
+[DONE][M9][backend-state] 每次 MIPS 生成前重置 MIPSManager 的栈槽、寄存器池、引用分配和 CallInst 运行库标签；同一 JVM 连续编译不再继承后端状态。
+[DONE][M9][backend-immediate] addiu、lw/sw、lbu/sb 的立即数或基址偏移超过有符号 16 位时，统一使用 `$at` 装载 32 位常量并以寄存器运算展开；小偏移指令保持原样。
+[DECISION][M9][scratch-register] `$at` 仅由目标指令序列化阶段用于大立即数展开，不进入寄存器分配器，也不跨展开序列保存值。

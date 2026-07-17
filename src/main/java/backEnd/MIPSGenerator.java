@@ -2,6 +2,7 @@ package backEnd;
 
 import frontEnd.Trimmer;
 import middleEnd.*;
+import middleEnd.Insts.CallInst;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,6 +15,8 @@ public class MIPSGenerator {
     }
 
     public void translate(String forOutput) {
+        MIPSManager.getInstance().reset();
+        CallInst.resetRuntimeState();
         if (Trimmer.optimize) {
             LLVMFunction mainFunc = null;
             for (LLVMFunction llvmFunction : llvmModule.LLVMFunctions) {
