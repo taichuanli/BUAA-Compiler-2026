@@ -15,11 +15,34 @@ M1 已确定的取舍
 [DECISION][M1] 不加入 EOF Token；当前只处理课程要求的 i/j/k 缺失 Token 恢复。
 [DECISION][M1] 不处理没有课程错误码的词法、语法诊断。
 
+M2（期中考核：switch 表达式与 yield）已确定的取舍
+------------------------------------------------
+[DONE][M2] 词法层加入 ARROW（"->"）与 YIELDTK（"yield" 保留字），并补上错误码 o。
+[DONE][M2] Parser 实现 <SwitchExp>、<SwitchArm> 与 <CaseStmt>，以及 Stmt 的 yield 分支。
+[DONE][M2] Parser 补齐 2026 文法中此前缺失的部分：while 语句、语句形式 switch、VarDecl 的 static
+           前缀、'(' BType ')' UnaryExp 显式类型转换。
+[DONE][M2] <Number> 按文法 Number → IntConst | CharConst 同时接受整数与字符常量，删除 <Character>。
+[DECISION][M2] 类别码表没有 FORTK / GETINTTK / GETCHARTK，因此 for、getint、getchar 不再作为保留字，
+           词法不再产生这三个记号，Parser 删除对应产生式（含 LVal = getint()/getchar() 与 for 语句）。
+           枚举项本身暂留，避免牵连尚未迁移的中后端代码；等中后端迁移完成后一起删除。
+[DECISION][M2] 语句位置与表达式位置的 switch 按位置区分：Stmt 分支只走语句形式，PrimaryExp 只走
+           表达式形式；两者分隔符不同（':' 与 '->'），不做跨形式回溯。
+[DECISION][M2] Compiler.SYNTAX_ONLY = true：期中只出口到语法分析，解析完成后写出 error.txt 即返回。
+           后续作业恢复时改为 false 即可接回 Visitor / Trimmer / IR / MIPS。
+[DECISION][M2] 赋值语句的判定不再依赖行号：改为跳过 LVal 的下标后检查 '='，赋值号换行也能正确解析。
+[DECISION][M2] 输入被截断时不抛越界异常，各循环都带“无法推进即退出”的保护，避免死循环。
+
 后续必须处理
 ------------
-[PENDING][while] 完成 while 的 Parser、Visitor、IR 和 MIPS 支持后，删除旧 for 文法及 FORTK、parseForStmt、translateForStmt 等相关实现。
-[PENDING][runtime] 新标准库函数调用完成后，删除 GETINTTK、GETCHARTK 以及 LVal = getint()/getchar() 的特殊语句实现。
-[PENDING][switch] 使用已加入的 SWITCHTK、CASETK、DEFAULTTK、COLON，实现 Parser、错误 e/m/n、fall-through IR 和 break 目标处理。
+[PENDING][while] 完成 while 的 Visitor、IR 和 MIPS 支持后，删除 IRGenerator 中的旧 for 残留。
+[PENDING][runtime] 新标准库函数调用完成后，删除 IRGenerator / MIPSGenerator 中 GETINTTK、GETCHARTK
+           以及旧 LVal = getint()/getchar() 的残留分支，最后删除这三个枚举项。
+[PENDING][switch] 语句形式 switch 已实现 Parser，待实现 Visitor、错误 e/m/n、fall-through IR 和
+           break 目标处理。
+[PENDING][switch-exp] switch 表达式与 yield 已实现 Parser，待实现 Visitor（yield 取值、分支类型统一）、
+           IR 与 MIPS 降低，以及 switch 表达式相关的错误 e/g/m/n。
 [PENDING][static] 使用已加入的 STATICTK，实现局部 static 的符号属性、静态存储期和全局数据区降低。
 [PENDING][type-system] 严格类型迭代时补全错误 e；M1 只迁移现有判断，不改变现有类型兼容逻辑。
+[PENDING][encoding] Compiler 目前用平台默认字符集读写 testfile.txt 与输出文件；本机默认 GBK，
+           换机或换平台时需确认编码一致，必要时统一改成 UTF-8。
 [PENDING][backend] 后端边界迭代时再处理 MIPSManager 重置、char 字节访存和立即数/偏移范围，不在 M1 修改。

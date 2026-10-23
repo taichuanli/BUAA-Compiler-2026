@@ -34,6 +34,20 @@ public class Parser {
         }
     }
 
+    // 语句形式的 case 缺少 ':'，行号取最后一个标签常量所在行；default 取关键字所在行
+    private void checkColon() {
+        if (!curToken().isType(LexType.COLON)) {
+            Reporter.REPORTER.report(tokenWithOffset(-1).lineNum, ErrorCode.MISSING_BRANCH_SEPARATOR);
+        }
+    }
+
+    // 表达式形式的分支缺少 '->'，行号取最后一个标签常量所在行；default 取关键字所在行
+    private void checkArrow() {
+        if (!curToken().isType(LexType.ARROW)) {
+            Reporter.REPORTER.report(tokenWithOffset(-1).lineNum, ErrorCode.MISSING_BRANCH_SEPARATOR);
+        }
+    }
+
     private boolean isActuallyEmpty(ASTNode node) {
         while (!(node instanceof LeafASTNode)) {
             if (!node.children.isEmpty()) {
@@ -56,6 +70,10 @@ public class Parser {
     }
 
     private Token curToken() {
+        // 容错：输入被截断时停在最后一个单词上，避免越界崩溃
+        if (index >= tokens.size()) {
+            return tokens.get(tokens.size() - 1);
+        }
         return tokens.get(index);
     }
 
@@ -95,10 +113,14 @@ public class Parser {
         // 用于区分 <Decl> <Stmt> <FuncDef>
         // <Decl> ::= <ConstDecl> | <VarDecl>
         // FIRST(ConstDecl) = {'const'}
-        // FIRST(VarDecl) = {'int', 'char'}
-        // FIRST(Stmt) 中 不含以上两种
+        // FIRST(VarDecl) = {'int', 'char'} 或 [ 'static' ] 后的 {'int', 'char'}
+        // FIRST(Stmt) 中 不含以上三种
         // FIRST(FuncDef) = {'int', 'char', 'void'}
         if (curToken().isType(LexType.CONSTTK))
+            return true;
+
+        // <VarDecl> ::= [ 'static' ] <BType> <VarDef> ...，<FuncDef> 没有 static 前缀
+        if (curToken().isType(LexType.STATICTK))
             return true;
 
         if (!curToken().isType(LexType.INTTK) && !curToken().isType(LexType.CHARTK))
@@ -174,8 +196,12 @@ public class Parser {
         // <Block> ::= '{' { <BlockItem> } '}'
         ASTNode node = new ASTNode("Block");
         node.addChild(parseTokenType(LexType.LBRACE));
-        while (!curToken().isType(LexType.RBRACE)) {
+        while (isReachable(0) && !curToken().isType(LexType.RBRACE)) {
+            int before = index;
             node.addChild(parseBlockItem());
+            if (index == before) {
+                break; // 无法推进时退出，避免死循环
+            }
         }
         node.addChild(parseTokenType(LexType.RBRACE));
 
@@ -196,31 +222,51 @@ public class Parser {
         return node;
     }
 
-    private boolean isLValEQL() {
-        int lineNum = curToken().lineNum;
-        for (int i = 1; isReachable(i); i++) {
-            if (tokenWithOffset(i).isType(LexType.ASSIGN))
-                return true;
-
-            if (tokenWithOffset(i).lineNum != lineNum || tokenWithOffset(i).isType(LexType.SEMICN))
-                break;
+    private boolean isLValAssign() {
+        // 当前单词是 Ident，判断它是否构成 <LVal> '=' ...
+        // <LVal> ::= <Ident> [ '[' <Exp> ']' ]
+        // 不用行号判断，赋值号换行时也不会误判
+        int offset = 1;
+        if (!isReachable(offset) || tokenWithOffset(offset).isType(LexType.LPARENT)) {
+            // 越界，或 <Ident> '(' [ <FuncRParams> ] ')' 形式的函数调用
+            return false;
         }
-        return false;
+        if (tokenWithOffset(offset).isType(LexType.LBRACK)) {
+            // 跳过 '[' <Exp> ']'
+            int depth = 0;
+            while (isReachable(offset)) {
+                if (tokenWithOffset(offset).isType(LexType.LBRACK)) {
+                    depth++;
+                } else if (tokenWithOffset(offset).isType(LexType.RBRACK)) {
+                    depth--;
+                    if (depth == 0) {
+                        offset++;
+                        break;
+                    }
+                } else if (tokenWithOffset(offset).isType(LexType.SEMICN)
+                        || tokenWithOffset(offset).isType(LexType.ASSIGN)) {
+                    break;
+                }
+                offset++;
+            }
+        }
+        return isReachable(offset) && tokenWithOffset(offset).isType(LexType.ASSIGN);
     }
 
     private ASTNode parseStmt() {
         /*
            <Stmt> ::= <Block>
                     | 'if' '(' <Cond> ')' <Stmt> [ 'else' <Stmt> ]
-                    | 'for' '(' [ <ForStmt> ] ';' [ <Cond> ] ';' [ <ForStmt> ] ')' <Stmt>
+                    | 'while' '(' <Cond> ')' <Stmt>
+                    | 'switch' '(' <Exp> ')' '{' { <CaseStmt> } '}'
                     | 'break' ';'
                     | 'continue' ';'
                     | 'return' [ <Exp> ] ';'
-                    | 'printf' '(' <StringConst> { ',' Exp } ')' ';'
-                    | <LVal> '=' 'getint' '(' ')' ';'
-                    | <LVal> '=' 'getchar' '(' ')' ';'
+                    | 'yield' [ <Exp> ] ';'
+                    | 'printf' '(' <StringConst> { ',' <Exp> } ')' ';'
                     | <LVal> '=' <Exp> ';'
-                    | [Exp] ';'
+                    | [ <Exp> ] ';'
+           语句位置的 switch 一律按语句形式分析；表达式位置的 switch 见 <SwitchExp>
          */
         ASTNode node = new ASTNode("Stmt");
         if (curToken().isType(LexType.LBRACE)) {
@@ -236,25 +282,31 @@ public class Parser {
                 node.addChild(parseTokenType(LexType.ELSETK));
                 node.addChild(parseStmt());
             }
-        } else if (curToken().isType(LexType.FORTK)) {
-            node.addChild(parseTokenType(LexType.FORTK));
+        } else if (curToken().isType(LexType.WHILETK)) {
+            // 'while' '(' <Cond> ')' <Stmt>
+            node.addChild(parseTokenType(LexType.WHILETK));
             node.addChild(parseTokenType(LexType.LPARENT));
-            if (!curToken().isType(LexType.SEMICN)) {
-                node.addChild(parseForStmt());
-            }
-            checkSemicn();
-            node.addChild(parseTokenType(LexType.SEMICN));
-            if (!curToken().isType(LexType.SEMICN)) {
-                node.addChild(parseCond());
-            }
-            checkSemicn();
-            node.addChild(parseTokenType(LexType.SEMICN));
-            if (!curToken().isType(LexType.RPARENT)) {
-                node.addChild(parseForStmt());
-            }
+            node.addChild(parseCond());
             checkRparent();
             node.addChild(parseTokenType(LexType.RPARENT));
             node.addChild(parseStmt());
+        } else if (curToken().isType(LexType.SWITCHTK)) {
+            // 语句位置的 switch 一律按语句形式分析
+            // 'switch' '(' <Exp> ')' '{' { <CaseStmt> } '}'
+            node.addChild(parseTokenType(LexType.SWITCHTK));
+            node.addChild(parseTokenType(LexType.LPARENT));
+            node.addChild(parseExp());
+            checkRparent();
+            node.addChild(parseTokenType(LexType.RPARENT));
+            node.addChild(parseTokenType(LexType.LBRACE));
+            while (isReachable(0) && !curToken().isType(LexType.RBRACE)) {
+                int before = index;
+                node.addChild(parseCaseStmt());
+                if (index == before) {
+                    break; // 无法推进时退出，避免死循环
+                }
+            }
+            node.addChild(parseTokenType(LexType.RBRACE));
         } else if (curToken().isType(LexType.BREAKTK)) {
             node.addChild(parseTokenType(LexType.BREAKTK));
             checkSemicn();
@@ -265,6 +317,18 @@ public class Parser {
             node.addChild(parseTokenType(LexType.SEMICN));
         } else if (curToken().isType(LexType.RETURNTK)) {
             node.addChild(parseTokenType(LexType.RETURNTK));
+            if (!curToken().isType(LexType.SEMICN)) {
+                ASTNode expNode = parseExp();
+                if (!isActuallyEmpty(expNode)) {
+                    node.addChild(expNode);
+                }
+            }
+            checkSemicn();
+            node.addChild(parseTokenType(LexType.SEMICN));
+        } else if (curToken().isType(LexType.YIELDTK)) {
+            // 'yield' [ <Exp> ] ';'
+            // ';' 缺失时行号取 yield 的值末尾；无值时最后一个单词就是 yield，取 yield 所在行
+            node.addChild(parseTokenType(LexType.YIELDTK));
             if (!curToken().isType(LexType.SEMICN)) {
                 ASTNode expNode = parseExp();
                 if (!isActuallyEmpty(expNode)) {
@@ -286,57 +350,20 @@ public class Parser {
             checkSemicn();
             node.addChild(parseTokenType(LexType.SEMICN));
         } else if (curToken().isType(LexType.IDENFR)) {
-            // 可能是 LVal '=', 也可能是 Exp
-            // <LVal> ::= <Ident> | <Ident> '[' <Exp> ']'
+            // 可能是 <LVal> '=' <Exp> ';'，也可能是 [ <Exp> ] ';'
             // <Exp> ::= <AddExp> ::= <MulExp> ::= <UnaryExp> ::= <PrimaryExp> | <Ident> '(' [ FuncRParams ] ')'
-            // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number> | <Character>
-            // case 1: <Ident> '(' [ FuncRParams ] ')'
+            // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number> | <SwitchExp>
             if (isReachable(1) && tokenWithOffset(1).isType(LexType.LPARENT)) {
-                // <Ident> '(' [ FuncRParams ] ')'，解析 Exp
+                // <Ident> '(' [ FuncRParams ] ')'，按 <Exp> 分析
+                node.addChild(parseExp());
+            } else if (isLValAssign()) {
+                // <LVal> '=' <Exp> ';'
+                node.addChild(parseLVal());
+                node.addChild(parseTokenType(LexType.ASSIGN));
                 node.addChild(parseExp());
             } else {
-                // 区分 <LVal> 来自 <PrimaryExp> 还是 <LVal> '=' <Exp>
-                // <LVal> ::= <Ident> | <Ident> '[' <Exp> ']'
-//                int offset = 1;
-//                if (isReachable(1) && tokenWithOffset(1).isType(LexType.LBRACK)) {
-//                    // 进行中括号匹配，假设中间一定是合法 <Exp>, 且可构成 <Ident> '[' <Exp> ']' 作为 <LVal>
-//                    int cnt = 0, lineNum = tokenWithOffset(1).lineNum;
-//                    do {
-//                        if (tokenWithOffset(offset).isType(LexType.LBRACK)) {
-//                            cnt++;
-//                        } else if (tokenWithOffset(offset).isType(LexType.RBRACK)) {
-//                            cnt--;
-//                        } else if (tokenWithOffset(offset).isType(LexType.SEMICN) || tokenWithOffset(offset).isType(LexType.ASSIGN)) {
-//                            break;
-//                        }
-//                        offset++;
-//                    } while (isReachable(offset) && cnt != 0 && tokenWithOffset(offset).lineNum == lineNum);
-//                }
-                // 找到 <LVal> 结束处，判断 tokenWithOffset(offset) 是否为 '='
-//                if (tokenWithOffset(offset).isType(LexType.ASSIGN)) {
-                if (isLValEQL()) {
-                    node.addChild(parseLVal());
-                    node.addChild(parseTokenType(LexType.ASSIGN));
-                    // | <LVal> '=' 'getint' '(' ')' ';'
-                    // | <LVal> '=' 'getchar' '(' ')' ';'
-                    // | <LVal> '=' <Exp> ';'
-                    if (curToken().isType(LexType.GETINTTK)) {
-                        node.addChild(parseTokenType(LexType.GETINTTK));
-                        node.addChild(parseTokenType(LexType.LPARENT));
-                        checkRparent();
-                        node.addChild(parseTokenType(LexType.RPARENT));
-                    } else if (curToken().isType(LexType.GETCHARTK)) {
-                        node.addChild(parseTokenType(LexType.GETCHARTK));
-                        node.addChild(parseTokenType(LexType.LPARENT));
-                        checkRparent();
-                        node.addChild(parseTokenType(LexType.RPARENT));
-                    } else {
-                        node.addChild(parseExp());
-                    }
-                } else {
-                    // <Exp>
-                    node.addChild(parseExp());
-                }
+                // [ <Exp> ] ';'
+                node.addChild(parseExp());
             }
             checkSemicn();
             node.addChild(parseTokenType(LexType.SEMICN));
@@ -454,12 +481,85 @@ public class Parser {
         return node;
     }
 
-    private ASTNode parseForStmt() {
-        // <ForStmt> ::=  <LVal> '=' <Exp>
-        ASTNode node = new ASTNode("ForStmt");
-        node.addChild(parseLVal());
-        node.addChild(parseTokenType(LexType.ASSIGN));
+    private ASTNode parseCaseStmt() {
+        // <CaseStmt> ::= 'case' <Number> ':' { <Stmt> } | 'default' ':' { <Stmt> }
+        ASTNode node = new ASTNode("CaseStmt");
+        if (curToken().isType(LexType.CASETK)) {
+            node.addChild(parseTokenType(LexType.CASETK));
+            node.addChild(parseNumber());
+        } else {
+            node.addChild(parseTokenType(LexType.DEFAULTTK));
+        }
+        checkColon();
+        node.addChild(parseTokenType(LexType.COLON));
+        while (isReachable(0)
+                && !curToken().isType(LexType.RBRACE)
+                && !curToken().isType(LexType.CASETK)
+                && !curToken().isType(LexType.DEFAULTTK)) {
+            int before = index;
+            node.addChild(parseStmt());
+            if (index == before) {
+                break; // 无法推进时退出，避免死循环
+            }
+        }
+
+        if (OUTPUT) {
+            sb.append(node.print()).append("\n");
+        }
+        return node;
+    }
+
+    private ASTNode parseSwitchExp() {
+        // <SwitchExp> ::= 'switch' '(' <Exp> ')' '{' { <SwitchArm> } '}'
+        // 表达式位置的 switch 一律按表达式形式分析
+        ASTNode node = new ASTNode("SwitchExp");
+        node.addChild(parseTokenType(LexType.SWITCHTK));
+        node.addChild(parseTokenType(LexType.LPARENT));
         node.addChild(parseExp());
+        checkRparent();
+        node.addChild(parseTokenType(LexType.RPARENT));
+        node.addChild(parseTokenType(LexType.LBRACE));
+        while (isReachable(0) && !curToken().isType(LexType.RBRACE)) {
+            int before = index;
+            node.addChild(parseSwitchArm());
+            if (index == before) {
+                break; // 无法推进时退出，避免死循环
+            }
+        }
+        node.addChild(parseTokenType(LexType.RBRACE));
+
+        if (OUTPUT) {
+            sb.append(node.print()).append("\n");
+        }
+        return node;
+    }
+
+    private ASTNode parseSwitchArm() {
+        // <SwitchArm> ::= 'case' <Number> { ',' <Number> } '->' <Exp> ';'
+        //               | 'case' <Number> { ',' <Number> } '->' <Block>
+        //               | 'default' '->' <Exp> ';'
+        //               | 'default' '->' <Block>
+        // 按位置区分两种形式：体是 <Exp> ';' 或 <Block>，块体后面没有 ';'
+        ASTNode node = new ASTNode("SwitchArm");
+        if (curToken().isType(LexType.CASETK)) {
+            node.addChild(parseTokenType(LexType.CASETK));
+            node.addChild(parseNumber());
+            while (curToken().isType(LexType.COMMA)) {
+                node.addChild(parseTokenType(LexType.COMMA));
+                node.addChild(parseNumber());
+            }
+        } else {
+            node.addChild(parseTokenType(LexType.DEFAULTTK));
+        }
+        checkArrow();
+        node.addChild(parseTokenType(LexType.ARROW));
+        if (curToken().isType(LexType.LBRACE)) {
+            node.addChild(parseBlock());
+        } else {
+            node.addChild(parseExp());
+            checkSemicn();
+            node.addChild(parseTokenType(LexType.SEMICN));
+        }
 
         if (OUTPUT) {
             sb.append(node.print()).append("\n");
@@ -629,7 +729,8 @@ public class Parser {
     }
 
     private ASTNode parseUnaryExp() {
-        // <UnaryExp> ::= <PrimaryExp> | <UnaryOp> <UnaryExp> | <Ident> '(' [<FuncRParams>] ')'
+        // <UnaryExp> ::= <PrimaryExp> | <Ident> '(' [<FuncRParams>] ')'
+        //              | <UnaryOp> <UnaryExp> | '(' <BType> ')' <UnaryExp>
         ASTNode node = new ASTNode("UnaryExp");
         if (curToken().isType(LexType.IDENFR) && isReachable(1) && tokenWithOffset(1).isType(LexType.LPARENT)) {
             node.addChild(parseIdent());
@@ -639,6 +740,13 @@ public class Parser {
             }
             checkRparent();
             node.addChild(parseTokenType(LexType.RPARENT));
+        } else if (isCastType()) {
+            // '(' <BType> ')' <UnaryExp>，<BType> 不输出
+            node.addChild(parseTokenType(LexType.LPARENT));
+            node.addChild(parseBType());
+            checkRparent();
+            node.addChild(parseTokenType(LexType.RPARENT));
+            node.addChild(parseUnaryExp());
         } else if (isUnaryOp()) {
             node.addChild(parseUnaryOp());
             node.addChild(parseUnaryExp());
@@ -650,6 +758,13 @@ public class Parser {
             sb.append(node.print()).append("\n");
         }
         return node;
+    }
+
+    private boolean isCastType() {
+        // 区分 '(' <Exp> ')' 与 '(' <BType> ')' <UnaryExp>
+        return curToken().isType(LexType.LPARENT) && isReachable(2)
+                && (tokenWithOffset(1).isType(LexType.INTTK) || tokenWithOffset(1).isType(LexType.CHARTK))
+                && tokenWithOffset(2).isType(LexType.RPARENT);
     }
 
     private ASTNode parseFuncRParams() {
@@ -721,7 +836,7 @@ public class Parser {
     }
 
     private ASTNode parsePrimaryExp() {
-        // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number> | <Character>
+        // <PrimaryExp> ::= '(' <Exp> ')' | <LVal> | <Number> | <SwitchExp>
         ASTNode node = new ASTNode("PrimaryExp");
         if (curToken().isType(LexType.LPARENT)) {
             node.addChild(parseTokenType(LexType.LPARENT));
@@ -730,10 +845,10 @@ public class Parser {
             node.addChild(parseTokenType(LexType.RPARENT));
         } else if (curToken().isType(LexType.IDENFR)) {
             node.addChild(parseLVal());
-        } else if (curToken().isType(LexType.INTCON)) {
+        } else if (curToken().isType(LexType.INTCON) || curToken().isType(LexType.CHRCON)) {
             node.addChild(parseNumber());
-        } else {
-            node.addChild(parseChar());
+        } else if (curToken().isType(LexType.SWITCHTK)) {
+            node.addChild(parseSwitchExp());
         }
 
         if (OUTPUT) {
@@ -760,19 +875,11 @@ public class Parser {
     }
 
     private ASTNode parseNumber() {
-        // <Number> ::= <IntConst>
+        // <Number> ::= <IntConst> | <CharConst>
         ASTNode node = new ASTNode("Number");
-        node.addChild(parseTokenType(LexType.INTCON));
-        if (OUTPUT) {
-            sb.append(node.print()).append("\n");
+        if (curToken().isType(LexType.INTCON) || curToken().isType(LexType.CHRCON)) {
+            node.addChild(parseTokenType(curToken().type));
         }
-        return node;
-    }
-
-    private ASTNode parseChar() {
-        // <Character> ::= <CharConst>
-        ASTNode node = new ASTNode("Character");
-        node.addChild(parseTokenType(LexType.CHRCON));
         if (OUTPUT) {
             sb.append(node.print()).append("\n");
         }
@@ -806,8 +913,11 @@ public class Parser {
     }
 
     private ASTNode parseVarDecl() {
-        // <VarDecl> ::= <BType> <VarDef> { ',' <VarDef> } ';'
+        // <VarDecl> ::= [ 'static' ] <BType> <VarDef> { ',' <VarDef> } ';'
         ASTNode node = new ASTNode("VarDecl");
+        if (curToken().isType(LexType.STATICTK)) {
+            node.addChild(parseTokenType(LexType.STATICTK));
+        }
         node.addChild(parseBType());
         node.addChild(parseVarDef());
         while (curToken().isType(LexType.COMMA)) {

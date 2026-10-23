@@ -1,6 +1,8 @@
 package frontEnd.lexer;
 
 // 枚举类
+// 类别码以期中考核给出的《完整类别码表》为准：
+// 表中没有 for / getint / getchar，因此三者不再作为保留字，仅保留枚举项供尚未迁移的中后端代码编译。
 public enum LexType {
     PLUS,           // "+"
     MINU,           // "-"
@@ -24,6 +26,7 @@ public enum LexType {
     GRE,            // ">"
     EQL,            // "=="
     ASSIGN,         // "="
+    ARROW,          // "->"
     OR,             // "||"
     AND,            // "&&"
     INTCON,
@@ -43,11 +46,13 @@ public enum LexType {
     CASETK,
     DEFAULTTK,
     STATICTK,
-    FORTK,
-    GETINTTK,
-    GETCHARTK,
+    YIELDTK,
     PRINTFTK,
     RETURNTK,
     VOIDTK,
     NOTE,
+    // 以下为 2024 文法的遗留记号，2026 文法中不是保留字，Parser 已不再产生它们。
+    FORTK,
+    GETINTTK,
+    GETCHARTK,
 }

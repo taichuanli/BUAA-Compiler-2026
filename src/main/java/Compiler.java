@@ -19,6 +19,9 @@ public class Compiler {
     private static final String VisitorPath = "symbol.txt";
     private static final String IRPath = "llvm_ir.txt";
     private static final String MIPSPath = "mips.txt";
+    // 期中考核只考察词法分析与语法分析：解析结束并写出 error.txt 后立即退出。
+    // 语义分析及其后的作业重新启用时，把这里改成 false 即可恢复完整流水线。
+    private static final boolean SYNTAX_ONLY = true;
 
     public static void main(String[] args) {
         Reporter.REPORTER.reset();
@@ -28,6 +31,11 @@ public class Compiler {
             ArrayList<Token> tokens = lexer.analyze(LexerPath);
             Parser parser = new Parser(tokens);
             ASTNode node = parser.analyze(ParserPath);
+            if (SYNTAX_ONLY) {
+                // 只输出词法、语法阶段的错误
+                Reporter.REPORTER.report();
+                return;
+            }
             Visitor visitor = new Visitor(node);
             HashMap<Integer, SymbolTable> symbolTables = visitor.analyze(VisitorPath);
             node = Trimmer.instance.trim(node);

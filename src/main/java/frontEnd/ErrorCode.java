@@ -14,7 +14,9 @@ public enum ErrorCode {
     MISSING_RIGHT_BRACKET("k"),
     PRINTF_ARGUMENT_COUNT_MISMATCH("l"),
     INVALID_CONTROL_FLOW("m"),
-    DUPLICATED_CASE("n");
+    DUPLICATED_CASE("n"),
+    // 期中新增：switch 表达式的分支缺少 '->'，或语句形式 switch 的 case 缺少 ':'
+    MISSING_BRANCH_SEPARATOR("o");
 
     private final String value;
 

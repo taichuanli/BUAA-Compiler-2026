@@ -30,9 +30,7 @@ public class Lexer {
             put("case", "CASETK");
             put("default", "DEFAULTTK");
             put("static", "STATICTK");
-            put("for", "FORTK");
-            put("getint", "GETINTTK");
-            put("getchar", "GETCHARTK");
+            put("yield", "YIELDTK");
             put("printf", "PRINTFTK");
             put("return", "RETURNTK");
             put("void", "VOIDTK");
@@ -218,9 +216,15 @@ public class Lexer {
                 curPos++;
             }
             case '-' -> {
-                curToken = "-";
-                curType = LexType.MINU;
                 curPos++;
+                if (curPos < source.length() && source.charAt(curPos) == '>') {
+                    curToken = "->";
+                    curType = LexType.ARROW;
+                    curPos++;
+                } else {
+                    curToken = "-";
+                    curType = LexType.MINU;
+                }
             }
             case '*' -> {
                 curToken = "*";
