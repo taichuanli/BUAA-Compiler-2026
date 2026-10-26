@@ -79,7 +79,8 @@ JAR、第三方库或后端源码。
   switch 表达式可以出现在表达式语句中。分隔符写错不是本题新增错误恢复
   的合法替代形式，不应把冒号自动当作箭头。
 - 附件“如下内容的 json”之后没有实际给出对象；建议发布版本补全。
-  本提交使用 `{"programmingLanguage":"Java"}`，不携带目标码设置。
+  本提交保留主线配置 `{"programmingLanguage":"Java","objectCode":"MIPS"}`；
+  本题执行到语法分析阶段，由 `Compiler.main` 控制。
 
 建议优先加入 testcase9（数组下标）、testcase14（多重恢复）、CRLF、多行
 char/default 标签和空分支用例；这些边界比扩大纯算术表达式更有辨识度。
