@@ -1,0 +1,8 @@
+int main() {
+    return switch ('a') {
+        case '\n'
+            1;
+        default
+            0;
+    };
+}

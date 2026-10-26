@@ -1,0 +1,8 @@
+int main() {
+    int x = 2;
+    int y = switch (x) {
+        case 3 30;
+        default -> 0;
+    };
+    return 0;
+}

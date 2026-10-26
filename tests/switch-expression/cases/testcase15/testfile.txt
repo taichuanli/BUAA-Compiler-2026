@@ -1,0 +1,41 @@
+int choose ( int x ) {
+ return switch ( x ) {
+ case 1 -> 2 ;
+ default -> 3 ;
+ }
+ ;
+ }
+ int main ( ) {
+ int x = 0 ;
+ int a [ 5 ] ;
+ while ( x < 3 ) {
+ switch ( switch ( x ) {
+ case 1 -> 2 ;
+ default -> 3 ;
+ }
+ ) {
+ case 2 : a [ switch ( x ) {
+ case 0 -> 1 ;
+ default -> 2 ;
+ }
+ ] = switch ( x ) {
+ case 0 -> choose ( 1 ) ;
+ default -> 0 ;
+ }
+ ;
+ break ;
+ default : ;
+ }
+ x = x + 1 ;
+ }
+ printf ( "%d %c ->\n" , switch ( x ) {
+ case 1 -> 2 ;
+ default -> 3 ;
+ }
+ , ( char ) 65 ) ;
+ return switch ( x ) {
+ case 1 -> 2 ;
+ default -> 3 ;
+ }
+ ;
+ }

@@ -1,0 +1,18 @@
+int main ( ) {
+ int a [ 4 ] ;
+ a [ switch ( x ) {
+ case 0 -> 1 ;
+ default -> 2 ;
+ }
+ ] = 7 ;
+ a [ switch ( x ) {
+ case 0 -> 1 ;
+ default -> 2 ;
+ }
+ ] ;
+ return a [ switch ( x ) {
+ case 0 -> 1 ;
+ default -> 2 ;
+ }
+ ] ;
+ }

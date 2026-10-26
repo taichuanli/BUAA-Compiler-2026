@@ -158,7 +158,7 @@ public class Lexer {
         if (curPos < source.length() && source.charAt(curPos) == '\'') {
             sb.append(source.charAt(curPos));
             curPos++;
-            curType = LexType.CHRCON;
+            curType = LexType.CHARCON;
             curToken = sb.toString();
         }
     }
@@ -215,9 +215,15 @@ public class Lexer {
                 curPos++;
             }
             case '-' -> {
-                curToken = "-";
-                curType = LexType.MINU;
                 curPos++;
+                if (curPos < source.length() && source.charAt(curPos) == '>') {
+                    curToken = "->";
+                    curType = LexType.ARROW;
+                    curPos++;
+                } else {
+                    curToken = "-";
+                    curType = LexType.MINU;
+                }
             }
             case '*' -> {
                 curToken = "*";

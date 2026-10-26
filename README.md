@@ -1,5 +1,20 @@
 # BUAA Compiler 2026
 
+## 当前分支：期中 switch 表达式验题
+
+`codex/midterm-switch-expression` 按题面只执行词法与语法分析，入口生成
+`lexer.txt`、`parser.txt` 和 `error.txt`。完整编译器及前一轮正确性修复在
+`main` 的 `bef4374` 提交；下方 M1–M10 说明属于该主线。
+
+```powershell
+tests\switch-expression\run.cmd
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\package-midterm.ps1
+```
+
+提交包为 `target/switch-expression-submission.zip`。题目、验证结果与难度评估见
+[验题报告](docs/SWITCH_EXPRESSION_REVIEW.md)，用例说明见
+[switch 表达式回归](tests/switch-expression/README.md)。
+
 本项目从 `CompilerTheory-2024/lab/5-ObjectCodeGeneration` 中提取有效 Java 源码后建立，作为将个人 2024 SysY 编译器升级到 2026 课程文法的独立开发仓库。
 
 ## 当前状态

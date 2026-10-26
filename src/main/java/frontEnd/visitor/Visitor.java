@@ -579,7 +579,7 @@ public class Visitor {
                 if (!caseValues.add(value)) {
                     Reporter.REPORTER.report(label.lineNum, ErrorCode.DUPLICATED_CASE);
                 } else {
-                    SemanticType caseType = literal.isType(LexType.CHRCON)
+                    SemanticType caseType = literal.isType(LexType.CHARCON)
                             ? SemanticType.CHAR : SemanticType.INT;
                     if (switchType != SemanticType.ERROR && switchType != caseType) {
                         Reporter.REPORTER.report(label.lineNum, ErrorCode.TYPE_MISMATCH);
@@ -746,7 +746,7 @@ public class Visitor {
             return visitLVal(node.children.get(0));
         } else if (node.children.get(0).isNode("Number")) {
             Token number = ((LeafASTNode) node.children.get(0).children.get(0)).token;
-            return number.isType(LexType.CHRCON) ? SemanticType.CHAR : SemanticType.INT;
+            return number.isType(LexType.CHARCON) ? SemanticType.CHAR : SemanticType.INT;
         }
         return SemanticType.ERROR;
     }

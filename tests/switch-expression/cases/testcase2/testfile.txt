@@ -1,0 +1,16 @@
+char echo ( char c ) {
+ return c ;
+ }
+ int main ( ) {
+ static char c = 'a' ;
+ int i = 0 ;
+ while ( i < 2 ) {
+ i = i + 1 ;
+ }
+ switch ( c ) {
+ case 'a' : printf ( "%c ->\n" , echo ( c ) ) ;
+ break ;
+ default : ;
+ }
+ return 0 ;
+ }

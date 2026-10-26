@@ -46,3 +46,11 @@ M1 已确定的取舍
 [DONE][correctness][side-effects] 乘零与模一化简保留左右操作数指令，避免丢弃函数副作用、输入和嵌套表达式求值。
 [DONE][correctness][switch-condition] Trimmer 递归处理 CaseStmt 中的语句，保证嵌套 if/while/switch 的复合条件经过短路预处理。
 [DONE][correctness][runtime-regression] 新增 5 个必须运行 MARS 核对输出的用例；修复前 0/5、修复后 5/5，覆盖符号、调用与输入副作用、case 内复合条件。
+
+期中 switch 表达式验题分支
+-------------------------
+[DECISION][midterm][scope] 本分支 Compiler 仅执行词法、语法和课程错误输出；完整编译器与正确性维护保留在 main/bef4374。
+[DONE][midterm][switch-expression] 加入 ARROW、SwitchExp、SwitchArm 和缺少箭头错误 o；i/j 恢复不吞后继 token。
+[DONE][midterm][lookahead] 赋值前瞻按下标与花括号层次判断，支持 switch 表达式下标与跨行赋值，同时保留 k 恢复。
+[DONE][midterm][token-output] CharConst 类别输出统一为本题要求的 CHARCON；不引入语义检查。
+[DONE][midterm][validation] 22 项回归及提交包隔离编译通过，原文法 5 个用例与独立参考输出一致；题型与难度见 docs/SWITCH_EXPRESSION_REVIEW.md。

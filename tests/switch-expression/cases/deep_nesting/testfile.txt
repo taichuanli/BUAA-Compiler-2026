@@ -1,0 +1,39 @@
+int main ( ) {
+ return switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> switch ( 0 ) {
+ default -> 1 ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }
+ ;
+ }

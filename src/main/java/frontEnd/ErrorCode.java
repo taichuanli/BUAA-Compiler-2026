@@ -14,7 +14,8 @@ public enum ErrorCode {
     MISSING_RIGHT_BRACKET("k"),
     PRINTF_ARGUMENT_COUNT_MISMATCH("l"),
     INVALID_CONTROL_FLOW("m"),
-    DUPLICATED_CASE("n");
+    DUPLICATED_CASE("n"),
+    MISSING_SWITCH_ARM_SEPARATOR("o");
 
     private final String value;
 

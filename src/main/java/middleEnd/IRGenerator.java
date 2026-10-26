@@ -1304,7 +1304,7 @@ public class IRGenerator {
             return translateLValAsExp(node.children.get(0));
         } else {
             Token token = ((LeafASTNode) node.children.get(0).children.get(0)).token;
-            LLVMType.TypeID type = token.isType(LexType.CHRCON)
+            LLVMType.TypeID type = token.isType(LexType.CHARCON)
                     ? LLVMType.TypeID.CharTyID : LLVMType.TypeID.IntegerTyID;
             return new LLVMConst(type, literalValue(token));
         }

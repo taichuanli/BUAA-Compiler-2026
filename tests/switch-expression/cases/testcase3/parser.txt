@@ -1,0 +1,35 @@
+INTTK int
+MAINTK main
+LPARENT (
+RPARENT )
+LBRACE {
+BREAKTK break
+SEMICN ;
+<Stmt>
+CONTINUETK continue
+SEMICN ;
+<Stmt>
+IDENFR unknown
+<LVal>
+ASSIGN =
+IDENFR undefined
+LPARENT (
+INTCON 1
+<Number>
+<PrimaryExp>
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+<FuncRParams>
+RPARENT )
+<UnaryExp>
+<MulExp>
+<AddExp>
+<Exp>
+SEMICN ;
+<Stmt>
+RBRACE }
+<Block>
+<MainFuncDef>
+<CompUnit>

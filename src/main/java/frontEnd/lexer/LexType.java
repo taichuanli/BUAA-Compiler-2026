@@ -4,6 +4,7 @@ package frontEnd.lexer;
 public enum LexType {
     PLUS,           // "+"
     MINU,           // "-"
+    ARROW,          // "->"
     MULT,           // "*"
     DIV,            // "/"
     MOD,            // "%"
@@ -28,7 +29,7 @@ public enum LexType {
     AND,            // "&&"
     INTCON,
     STRCON,
-    CHRCON,
+    CHARCON,
     IDENFR,
     MAINTK,
     CONSTTK,

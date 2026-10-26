@@ -1,0 +1,102 @@
+[
+  {
+    "id": "testcase1",
+    "title": "unchanged: declarations and arithmetic",
+    "correct": true
+  },
+  {
+    "id": "testcase2",
+    "title": "unchanged: functions, char, while and statement switch",
+    "correct": true
+  },
+  {
+    "id": "testcase3",
+    "title": "syntax only: no semantic error codes",
+    "correct": true
+  },
+  {
+    "id": "testcase4",
+    "title": "unchanged: i/j/k recovery",
+    "correct": false
+  },
+  {
+    "id": "testcase5",
+    "title": "unchanged: illegal logical operator",
+    "correct": false
+  },
+  {
+    "id": "testcase6",
+    "title": "supplied sample: both switch positions",
+    "correct": true
+  },
+  {
+    "id": "testcase7",
+    "title": "arithmetic, casts, arguments and adjacent arrow/minus",
+    "correct": true
+  },
+  {
+    "id": "testcase8",
+    "title": "nested selectors and arm values",
+    "correct": true
+  },
+  {
+    "id": "testcase9",
+    "title": "array index assignment across inner semicolons",
+    "correct": true
+  },
+  {
+    "id": "testcase10",
+    "title": "constant/static/condition/parenthesized statement contexts",
+    "correct": true
+  },
+  {
+    "id": "testcase11",
+    "title": "supplied missing-arrow sample",
+    "correct": false
+  },
+  {
+    "id": "testcase12",
+    "title": "missing semicolon after multiline arm value",
+    "correct": false
+  },
+  {
+    "id": "testcase13",
+    "title": "missing selector right parenthesis",
+    "correct": false
+  },
+  {
+    "id": "testcase14",
+    "title": "nested recovery, default separator and same-line errors",
+    "correct": false
+  },
+  {
+    "id": "testcase15",
+    "title": "integrated statement/expression switches and array assignment",
+    "correct": true
+  },
+  {
+    "id": "empty_and_duplicate_arms",
+    "title": "zero arms and repeated labels are syntactically valid",
+    "correct": true
+  },
+  {
+    "id": "deep_nesting",
+    "title": "twelve nested switch expressions",
+    "correct": true
+  },
+  {
+    "id": "multiline_character_arrow",
+    "title": "character/default labels retain their own source lines",
+    "correct": false
+  },
+  {
+    "id": "missing_index_bracket",
+    "title": "assignment lookahead preserves k recovery",
+    "correct": false
+  },
+  {
+    "id": "crlf_sample",
+    "title": "CRLF source matches the supplied trace",
+    "correct": true
+  }
+]

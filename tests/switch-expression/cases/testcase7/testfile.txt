@@ -1,0 +1,17 @@
+int main ( ) {
+ int y = 2 * switch ( 1 ) {
+ case 1 ->-2 ;
+ default ->+3 ;
+ }
+ + 4 ;
+ f ( ( char ) switch ( 1 ) {
+ case 1 ->-2 ;
+ default ->+3 ;
+ }
+ , switch ( 1 ) {
+ case 1 ->-2 ;
+ default ->+3 ;
+ }
+ % 3 ) ;
+ return y ;
+ }

@@ -1,0 +1,7 @@
+int main() {
+    return switch (
+        1 + 2
+    {
+        default -> 0;
+    };
+}
