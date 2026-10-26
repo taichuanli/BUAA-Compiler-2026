@@ -58,7 +58,10 @@ java -jar target/buaa-compiler-2026-0.1.0-SNAPSHOT.jar
 ```powershell
 tests\m10\run.cmd
 1..10 | ForEach-Object { cmd /c "tests\m$_\run.cmd" }
+tests\correctness\run.cmd
 ```
+
+JDK 17、Maven、`repos/` 测试依赖和 MARS/GCC 的配置见 [本地环境说明](docs/LOCAL_ENVIRONMENT.md)。
 
 重新阅读项目时从 [重新上手与后续迭代指南](docs/REVIEW_AND_EXTENSION_GUIDE.md) 开始；最终功能边界和验证结果见 [2026 兼容性记录](docs/2026_COMPATIBILITY.md)。
 

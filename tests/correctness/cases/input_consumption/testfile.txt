@@ -1,0 +1,7 @@
+int main() {
+    int ignored = get_int() * 0;
+    ignored = 0 * get_int();
+    ignored = get_int() % 1;
+    printf("%d %d\n", ignored, get_int());
+    return 0;
+}

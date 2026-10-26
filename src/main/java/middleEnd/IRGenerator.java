@@ -1044,7 +1044,7 @@ public class IRGenerator {
 
             if (Trimmer.optimize && !charOperation) {
                 if (left instanceof LLVMConst constLeft && constLeft.constValue == 0) {
-                    return right;
+                    return token.equals("+") ? right : right.negate();
                 }
 
                 if (right instanceof LLVMConst constRight && constRight.constValue == 0) {
@@ -1098,7 +1098,7 @@ public class IRGenerator {
                         if (left instanceof LLVMConst constLeft) {
                             int val = constLeft.constValue;
                             if (val == 0) {
-                                return new LLVMConst(LLVMType.TypeID.IntegerTyID, 0);
+                                return evaluatedZero(left, right);
                             } else if (val == 1) {
                                 return right;
                             } else if (isPowerOf2(val)) {
@@ -1111,7 +1111,7 @@ public class IRGenerator {
                         if (right instanceof LLVMConst constRight) {
                             int val = constRight.constValue;
                             if (val == 0) {
-                                return new LLVMConst(LLVMType.TypeID.IntegerTyID, 0);
+                                return evaluatedZero(left, right);
                             } else if (val == 1) {
                                 return left;
                             } else if (isPowerOf2(val)) {
@@ -1133,7 +1133,7 @@ public class IRGenerator {
                         if (right instanceof LLVMConst constRight) {
                             int val = constRight.constValue;
                             if (val == 1) {
-                                return new LLVMConst(LLVMType.TypeID.IntegerTyID, 0);
+                                return evaluatedZero(left, right);
                             }
                         }
                     }
@@ -1161,6 +1161,14 @@ public class IRGenerator {
                 return finishCharArithmetic(left.binaryOperate(LLVMType.InstType.SREM, right), charOperation);
             }
         }
+    }
+
+    private LLVMExp evaluatedZero(LLVMExp left, LLVMExp right) {
+        // A constant result still evaluates its operands, including calls and input operations.
+        LLVMExp result = new LLVMExp(new LLVMConst(LLVMType.TypeID.IntegerTyID, 0));
+        result.addFromExp(left);
+        result.addFromExp(right);
+        return result;
     }
 
     private LLVMExp finishCharArithmetic(LLVMExp expression, boolean charOperation) {

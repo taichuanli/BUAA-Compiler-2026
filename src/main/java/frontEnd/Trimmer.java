@@ -74,11 +74,21 @@ public class Trimmer {
                 ret.addChild(trimBlock(child));
             } else if (child.isNode("Stmt")) {
                 ret.addChild(trimStmt(child));
+            } else if (child.isNode("CaseStmt")) {
+                ret.addChild(trimCaseStmt(child));
             } else {
                 ret.addChild(child);
             }
         }
 
+        return ret;
+    }
+
+    private ASTNode trimCaseStmt(ASTNode node) {
+        ASTNode ret = new ASTNode(node.name);
+        for (ASTNode child : node.children) {
+            ret.addChild(child.isNode("Stmt") ? trimStmt(child) : child);
+        }
         return ret;
     }
 

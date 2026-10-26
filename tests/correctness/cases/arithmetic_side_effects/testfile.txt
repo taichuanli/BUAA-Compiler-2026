@@ -1,0 +1,20 @@
+int calls = 0;
+int tick() {
+    calls = calls + 1;
+    return calls;
+}
+int masked() {
+    return tick() * 0;
+}
+int main() {
+    int a = 0 * tick();
+    int b = tick() * 0;
+    int c = tick() % 1;
+    tick() * 0;
+    tick() % 1;
+    int d = (tick() * 0) * 0;
+    int e = 0 * (tick() % 1);
+    int f = masked();
+    printf("%d %d %d %d %d %d %d\n", calls, a, b, c, d, e, f);
+    return 0;
+}

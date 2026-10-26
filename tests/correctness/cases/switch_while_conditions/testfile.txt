@@ -1,0 +1,19 @@
+int calls = 0;
+int tick() {
+    calls = calls + 1;
+    return 1;
+}
+int main() {
+    int index = 0;
+    switch (1) {
+        case 1:
+            while (index < 3 && tick()) {
+                index = index + 1;
+                if (index > 4) break;
+            }
+            break;
+        default: index = 9000;
+    }
+    printf("%d %d\n", index, calls);
+    return 0;
+}

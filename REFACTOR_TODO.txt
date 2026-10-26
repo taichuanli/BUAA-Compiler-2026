@@ -39,3 +39,10 @@ M1 已确定的取舍
 [DONE][M10][literal] CharConst 的转义求值已集中到 LiteralValue，并补齐 2026 规定的 `\r = 13`；Visitor、switch 降低和常量折叠不再维护重复转义表。
 [DONE][M10][audit] 最终回归已接入固定 MARS 用例，以及可选的同级 testcase-2026 全量审计；官方错误 58/58、正确程序编译 48/48 通过，47 个非性能程序与 GCC 输出一致。
 [LIMITATION][M10][performance] 官方 cr/perf 百万输入的未优化 MIPS 在 MARS 运行 240 秒仍未完成；输入 1000 时与 GCC 输出一致。当前重构以文法、语义和目标码正确性为范围，高级优化另立迭代。
+
+正确性维护
+----------
+[DONE][correctness][zero-subtraction] 整数 0-x 保留取负语义，0+x、x-0 和 char 模 256 运算保持原规则。
+[DONE][correctness][side-effects] 乘零与模一化简保留左右操作数指令，避免丢弃函数副作用、输入和嵌套表达式求值。
+[DONE][correctness][switch-condition] Trimmer 递归处理 CaseStmt 中的语句，保证嵌套 if/while/switch 的复合条件经过短路预处理。
+[DONE][correctness][runtime-regression] 新增 5 个必须运行 MARS 核对输出的用例；修复前 0/5、修复后 5/5，覆盖符号、调用与输入副作用、case 内复合条件。

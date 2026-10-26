@@ -1,0 +1,7 @@
+int main() {
+    int value = 7;
+    char letter = (char)7;
+    printf("%d %d %d %d %d %d\n", 0 - value, 0 + value, value - 0,
+            value + 0, (0 - value) * 2, (int)((char)0 - letter));
+    return 0;
+}

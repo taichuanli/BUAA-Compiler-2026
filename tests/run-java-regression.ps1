@@ -68,6 +68,12 @@ try {
 }
 finally {
     if (Test-Path $workRoot) {
+        $resolvedWorkRoot = (Resolve-Path -LiteralPath $workRoot).Path
+        $tempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd('\') + '\'
+        if (!$resolvedWorkRoot.StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
+            (Split-Path -Leaf $resolvedWorkRoot) -notlike "buaa-compiler-*") {
+            throw "Refusing to clean an unexpected regression work directory: $resolvedWorkRoot"
+        }
         Remove-Item -LiteralPath $workRoot -Recurse -Force
     }
 }
